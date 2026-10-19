@@ -1,0 +1,305 @@
+/* Внешний вид клавиш — общий для оверлея и превью в настройках. */
+
+.ks-root {
+  --ks-key: #0A84FF;
+  --ks-key-rgb: 10 132 255;
+  --ks-bg: #0A84FF;
+  --ks-fg: #FFFFFF;
+  --ks-icon: #FFFFFF;
+  --ks-border: transparent;
+  --ks-sub: rgba(255, 255, 255, .22);
+  --ks-count-fg: #FFFFFF;
+  --ks-s: 1;
+  --ks-r: 12;
+  --ks-op: 1;
+  --ks-spring: cubic-bezier(.3, 1.4, .5, 1);
+  --ks-spring-ms: 450ms;
+  --ks-font: "SF Pro Display", -apple-system, "Segoe UI Variable Display", "Segoe UI", system-ui, sans-serif;
+}
+
+.ks-stage {
+  position: absolute;
+  width: 0;
+  height: 0;
+}
+
+.ks-slot {
+  position: absolute;
+  left: 0;
+  will-change: transform, opacity;
+}
+.ks-v-bottom .ks-slot { bottom: 0; }
+.ks-v-top .ks-slot,
+.ks-v-middle .ks-slot { top: 0; }
+
+.ks-h-left .ks-slot { transform-origin: 0 100%; }
+.ks-h-center .ks-slot { transform-origin: 50% 100%; }
+.ks-h-right .ks-slot { transform-origin: 100% 100%; }
+.ks-v-top.ks-h-left .ks-slot { transform-origin: 0 0; }
+.ks-v-top.ks-h-center .ks-slot { transform-origin: 50% 0; }
+.ks-v-top.ks-h-right .ks-slot { transform-origin: 100% 0; }
+
+.ks-entry {
+  display: flex;
+  width: max-content;
+  font-family: var(--ks-font);
+  transform-origin: 50% 100%;
+}
+.ks-v-top .ks-entry { transform-origin: 50% 0; }
+.ks-v-middle .ks-entry { transform-origin: 50% 50%; }
+.ks-entry.ks-clip {
+  overflow: clip;
+  overflow-clip-margin: 10px;
+}
+
+.ks-keys {
+  display: flex;
+  align-items: center;
+  gap: calc(8px * var(--ks-s));
+  opacity: var(--ks-op);
+}
+
+/* ---------- Клавиша ---------- */
+.ks-cap {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: calc(7px * var(--ks-s));
+  box-sizing: border-box;
+  height: calc(48px * var(--ks-s));
+  min-width: calc(48px * var(--ks-s));
+  padding: 0 calc(16px * var(--ks-s));
+  border-radius: calc(var(--ks-r) * 1px * var(--ks-s));
+  background: var(--ks-bg);
+  color: var(--ks-fg);
+  box-shadow: inset 0 0 0 1px var(--ks-border);
+  font-size: calc(20px * var(--ks-s));
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  line-height: 1;
+  white-space: nowrap;
+  transition:
+    scale var(--ks-spring-ms) var(--ks-spring),
+    translate var(--ks-spring-ms) var(--ks-spring),
+    box-shadow .25s ease,
+    filter .25s ease;
+}
+.ks-cap.wide { min-width: calc(128px * var(--ks-s)); }
+
+.ks-shadow .ks-cap {
+  box-shadow:
+    inset 0 0 0 1px var(--ks-border),
+    inset 0 calc(-2.5px * var(--ks-s)) 0 rgba(0, 0, 0, .16),
+    inset 0 1px 0 rgba(255, 255, 255, .2),
+    0 calc(8px * var(--ks-s)) calc(22px * var(--ks-s)) rgba(0, 0, 0, .26),
+    0 1px 3px rgba(0, 0, 0, .2);
+}
+
+/* Зажатая клавиша: «нажата» вниз + дышащее кольцо вокруг */
+.ks-cap.held {
+  scale: .95;
+  translate: 0 calc(1.5px * var(--ks-s));
+  filter: brightness(1.08);
+}
+.ks-shadow .ks-cap.held {
+  box-shadow:
+    inset 0 0 0 1px var(--ks-border),
+    inset 0 1px 2px rgba(0, 0, 0, .18),
+    0 calc(3px * var(--ks-s)) calc(10px * var(--ks-s)) rgba(0, 0, 0, .24);
+}
+.ks-cap::after {
+  content: '';
+  position: absolute;
+  inset: calc(-5px * var(--ks-s));
+  border-radius: calc((var(--ks-r) + 5) * 1px * var(--ks-s));
+  border: calc(2.5px * var(--ks-s)) solid var(--ks-key);
+  opacity: 0;
+  scale: .9;
+  transition: opacity .25s ease, scale var(--ks-spring-ms) var(--ks-spring);
+  pointer-events: none;
+}
+.ks-style-light .ks-cap::after,
+.ks-style-dark .ks-cap::after { border-color: var(--ks-icon); }
+.ks-cap.held::after {
+  opacity: .9;
+  scale: 1;
+}
+.ks-pulse .ks-cap.held::after {
+  animation: ks-breathe 1.4s ease-in-out infinite;
+}
+@keyframes ks-breathe {
+  0%, 100% { opacity: .95; scale: 1; }
+  50% { opacity: .3; scale: 1.05; }
+}
+
+.ks-t { display: block; }
+.ks-svg {
+  display: block;
+  width: .95em;
+  height: .95em;
+  flex: none;
+  color: var(--ks-icon);
+}
+.ks-mouse { width: 1.2em; height: 1.2em; }
+.ks-mouse .mp { fill: currentColor; opacity: 0; }
+.ks-mouse .mp.on { opacity: 1; }
+.ks-mouse .mw.on { fill: currentColor; }
+.ks-pulse .ks-cap.held .ks-mouse .mp.on { animation: ks-blink 1.2s ease-in-out infinite; }
+@keyframes ks-blink { 50% { opacity: .4; } }
+
+.ks-arrow {
+  display: block;
+  color: var(--ks-icon);
+}
+.ks-arrow .ks-svg { width: .9em; height: .9em; }
+
+.ks-sub {
+  display: block;
+  font-size: .6em;
+  font-weight: 600;
+  letter-spacing: 0;
+  padding: .32em .6em;
+  border-radius: 99px;
+  background: var(--ks-sub);
+}
+
+/* ---------- «+» между клавишами ---------- */
+.ks-plus {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: calc(20px * var(--ks-s));
+  height: calc(20px * var(--ks-s));
+  border-radius: 50%;
+  background: var(--ks-bg);
+  color: var(--ks-icon);
+  box-shadow: inset 0 0 0 1px var(--ks-border);
+}
+.ks-shadow .ks-plus {
+  box-shadow: inset 0 0 0 1px var(--ks-border), 0 2px 6px rgba(0, 0, 0, .22);
+}
+.ks-plus svg { width: 62%; height: 62%; display: block; }
+
+/* ---------- Счётчик повторов ---------- */
+.ks-count {
+  flex: none;
+  display: grid;
+  place-items: center;
+  height: calc(30px * var(--ks-s));
+  min-width: calc(30px * var(--ks-s));
+  box-sizing: border-box;
+  padding: 0 calc(10px * var(--ks-s));
+  border-radius: 99px;
+  background: var(--ks-key);
+  color: var(--ks-count-fg);
+  font-family: var(--ks-font);
+  font-size: calc(15px * var(--ks-s));
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+.ks-shadow .ks-count { box-shadow: 0 3px 10px rgba(0, 0, 0, .25); }
+
+/* ---------- Подложка ---------- */
+.ks-backdrop .ks-entry {
+  padding: calc(8px * var(--ks-s));
+  border-radius: calc((var(--ks-r) + 8) * 1px * var(--ks-s));
+  background: rgba(28, 28, 30, .55);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, .25), inset 0 0 0 1px rgba(255, 255, 255, .08);
+}
+.ks-backdrop .ks-plus {
+  background: transparent;
+  box-shadow: none;
+  color: rgba(255, 255, 255, .85);
+}
+
+/* ---------- Эффекты у курсора ---------- */
+.ks-fx {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+.ks-ripple {
+  position: absolute;
+  width: 48px;
+  height: 48px;
+  margin: -24px 0 0 -24px;
+  box-sizing: border-box;
+  border-radius: 50%;
+  border: 3px solid var(--ks-key);
+}
+.ks-ripple.right { border-style: dashed; }
+.ks-dot,
+.ks-halo {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 0;
+  height: 0;
+}
+.ks-dot::before {
+  content: '';
+  position: absolute;
+  left: -18px;
+  top: -18px;
+  width: 36px;
+  height: 36px;
+  box-sizing: border-box;
+  border-radius: 50%;
+  background: rgb(var(--ks-key-rgb) / .28);
+  border: 2.5px solid var(--ks-key);
+  box-shadow: 0 0 0 6px rgb(var(--ks-key-rgb) / .12);
+  animation: ks-dot 1.3s ease-in-out infinite;
+}
+@keyframes ks-dot { 50% { scale: .84; } }
+.ks-ripple,
+.ks-dot { z-index: 1; }
+.ks-halo::before {
+  content: '';
+  position: absolute;
+  left: -34px;
+  top: -34px;
+  width: 68px;
+  height: 68px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgb(var(--ks-key-rgb) / .34) 0%, rgb(var(--ks-key-rgb) / .12) 55%, transparent 72%);
+}
+/* Подсветка при встряхивании: крупнее и заметнее, с тонким кольцом */
+.ks-halo.shake::before {
+  left: -60px;
+  top: -60px;
+  width: 120px;
+  height: 120px;
+  background: radial-gradient(circle, rgb(var(--ks-key-rgb) / .45) 0%, rgb(var(--ks-key-rgb) / .2) 45%, transparent 70%);
+}
+.ks-halo.shake::after {
+  content: '';
+  position: absolute;
+  left: -32px;
+  top: -32px;
+  width: 64px;
+  height: 64px;
+  box-sizing: border-box;
+  border-radius: 50%;
+  border: 2.5px solid rgb(var(--ks-key-rgb) / .8);
+}
+
+/* Увеличенный курсор: кончик стрелки — в точке курсора, масштаб от кончика */
+.ks-bigcursor {
+  position: absolute;
+  left: 0;
+  top: 0;
+  z-index: 2;
+  width: 14px;
+  height: 21px;
+  margin: -1px 0 0 -1px;
+  transform-origin: 1px 1px;
+  opacity: 0;
+  filter: drop-shadow(0 1.5px 2.5px rgba(0, 0, 0, .35));
+}
+.ks-bigcursor svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}

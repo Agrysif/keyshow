@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self'; img-src 'self' data:">
+  <title>KeyShow</title>
+  <link rel="stylesheet" href="keycaps.css">
+  <link rel="stylesheet" href="settings.css">
+</head>
+<body>
+  <div class="app">
+    <aside class="sidebar">
+      <div class="titlebar"></div>
+      <div class="brand">
+        <img src="../assets/icon.png" alt="">
+        <div>
+          <div class="brand-name">KeyShow</div>
+          <div class="brand-sub" data-i18n="brand.sub"></div>
+        </div>
+      </div>
+
+      <div id="banner" class="banner" hidden></div>
+
+      <div class="card master">
+        <div class="row">
+          <div class="row-label">
+            <span data-i18n="master.label"></span>
+            <div class="row-sub" id="masterSub"></div>
+          </div>
+          <label class="switch"><input type="checkbox" id="masterToggle"><span></span></label>
+        </div>
+      </div>
+
+      <nav id="nav"></nav>
+
+      <div class="side-foot" id="sideFoot"></div>
+    </aside>
+
+    <main class="content" id="content">
+      <div class="head">
+        <div class="titlebar"></div>
+        <h1 id="title"></h1>
+        <section class="preview" id="preview" data-bg="dark">
+          <div class="pv-label" data-i18n="preview.label"></div>
+          <div class="pv-root ks-root" id="pvRoot"><div id="pvStage"></div></div>
+          <div class="pv-hint" id="pvHint" data-i18n="preview.hint"></div>
+          <div class="pv-tools">
+            <div id="pvBg"></div>
+            <button class="btn-pill" id="demoBtn" type="button">
+              <svg viewBox="0 0 12 12"><path d="M3 1.8v8.4c0 .5.5.8.9.5l6.4-4.2c.4-.3.4-.8 0-1L3.9 1.3c-.4-.3-.9 0-.9.5Z" fill="currentColor"/></svg>
+              <span data-i18n="preview.demo"></span>
+            </button>
+          </div>
+        </section>
+      </div>
+      <div class="groups" id="groups"></div>
+    </main>
+  </div>
+
+  <script src="i18n.js"></script>
+  <script src="keys.js"></script>
+  <script src="engine.js"></script>
+  <script src="changelog.js"></script>
+  <script src="settings.js"></script>
+</body>
+</html>
