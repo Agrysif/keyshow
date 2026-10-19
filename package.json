@@ -1,7 +1,7 @@
 {
   "name": "keyshow",
   "productName": "KeyShow",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Keystroke and mouse overlay for tutorial videos",
   "main": "src/main.js",
   "author": "Agrysif",
