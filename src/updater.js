@@ -40,6 +40,7 @@ function createUpdater({ isAuto, idleFor, onState, beforeInstall }) {
   autoUpdater.logger = { info: log('info'), warn: log('warn'), error: log('error'), debug: () => {} };
   autoUpdater.autoDownload = isAuto();
   autoUpdater.autoInstallOnAppQuit = true; // если выйти из KeyShow — обновление поставится тихо
+  autoUpdater.disableWebInstaller = true;  // используем обычный установщик, а не веб-установщик
 
   autoUpdater.on('checking-for-update', () => set({ status: 'checking', error: null }));
   autoUpdater.on('update-available', (info) => set({
