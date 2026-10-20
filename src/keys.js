@@ -79,23 +79,9 @@
     'NumpadMultiply', 'NumpadAdd', 'NumpadSubtract', 'NumpadDecimal', 'NumpadDivide',
   ]);
 
-  const MOUSE_LABELS = {
-    ru: {
-      short: { 1: 'ЛКМ', 2: 'ПКМ', 3: 'СКМ', 4: 'Назад', 5: 'Вперёд' },
-      full: { 1: 'Левый клик', 2: 'Правый клик', 3: 'Средний клик', 4: 'Кнопка «Назад»', 5: 'Кнопка «Вперёд»' },
-      drag: 'перетаскивание', scroll: 'Прокрутка', button: 'Кнопка',
-    },
-    en: {
-      short: { 1: 'LMB', 2: 'RMB', 3: 'MMB', 4: 'Back', 5: 'Forward' },
-      full: { 1: 'Left Click', 2: 'Right Click', 3: 'Middle Click', 4: 'Back Button', 5: 'Forward Button' },
-      drag: 'drag', scroll: 'Scroll', button: 'Button',
-    },
-  };
-
-  // Подписи кнопок мыши на нужном языке: { 1: 'ЛКМ', …, drag, scroll, button }.
+  // Подписи кнопок мыши на нужном языке (переводы — в src/locales).
   function mouseLabels(lang, style) {
-    const L = MOUSE_LABELS[lang] || MOUSE_LABELS.ru;
-    return { ...(L[style] || L.short), drag: L.drag, scroll: L.scroll, button: L.button };
+    return root.KeyShowI18n.mouseLabels(lang, style);
   }
   const WHEEL_ARROWS = { up: IC.up, down: IC.down, left: IC.left, right: IC.right };
 

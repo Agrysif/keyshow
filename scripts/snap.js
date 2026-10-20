@@ -4,6 +4,7 @@
 //   --shake      только проверка подсветки и увеличения курсора при встряхивании
 //   --i18n       окно настроек на двух языках, «Обновления» и «Что нового»
 //   --screens    скриншоты для README в docs/screenshots (сцены из scripts/showcase.html)
+//   --langs      окно настроек на всех языках: поиск вылезающего или обрезанного текста
 //   --real-hook  дополнительно отправить в систему безопасное Shift + F15 (проверка настоящего хука)
 'use strict';
 
@@ -153,6 +154,54 @@ async function i18nScenario() {
   mouse('up', 1); key('up', 'Ctrl');
   emit('set', { language: 'auto' });
   await sleep(300);
+}
+
+// Все языки: ищем текст, который вылезает за карточку или обрезается многоточием, и снимаем пару экранов.
+async function langsScenario() {
+  const { settings } = windows();
+  const I18N = require('../src/i18n.js');
+  const sections = ['look', 'behavior', 'mouse', 'motion', 'place', 'general', 'updates'];
+  const probe = `(() => {
+    const out = [];
+    for (const card of document.querySelectorAll('#groups .card')) {
+      const cr = card.getBoundingClientRect();
+      for (const el of card.querySelectorAll('*')) {
+        const r = el.getBoundingClientRect();
+        if (r.width && r.right > cr.right + 1) out.push('за краем: ' + (el.textContent || el.className).trim().slice(0, 40));
+      }
+    }
+    for (const b of document.querySelectorAll('#groups .seg button')) {
+      if (b.scrollWidth > b.clientWidth + 1) out.push('обрезано: ' + b.textContent.trim());
+    }
+    const nav = document.querySelector('#nav');
+    if (nav.scrollWidth > nav.clientWidth + 1) out.push('меню слева шире панели');
+    return [...new Set(out)];
+  })()`;
+  let total = 0;
+  for (const code of I18N.CODES) {
+    emit('set', { language: code });
+    await sleep(350);
+    for (const id of sections) {
+      await clickNav(id);
+      const issues = await settings.webContents.executeJavaScript(probe);
+      if (issues.length) { total += issues.length; console.log(`  ${code}/${id}: ${issues.join(' | ')}`); }
+    }
+    if (['kk', 'hy', 'tg', 'ro'].includes(code)) {
+      await clickNav(code === 'kk' ? 'general' : code === 'hy' ? 'mouse' : code === 'tg' ? 'behavior' : 'look');
+      await snapSettings(`l-${code}`);
+    }
+  }
+  // Меню выбора языка
+  emit('set', { language: 'kk' });
+  await sleep(350);
+  await clickNav('general');
+  await settings.webContents.executeJavaScript(
+    "[...document.querySelectorAll('.select')].find((b) => b.closest('.row').textContent.includes('Бағдарлама тілі')).click()",
+  );
+  await sleep(500);
+  await snapSettings('l-menu');
+  emit('set', { language: 'auto' });
+  console.log(total ? `Проблем вёрстки: ${total}` : 'Вёрстка в порядке на всех языках');
 }
 
 // Скриншоты для README → docs/screenshots. Настоящий ввод отключён, чтобы в кадр не попало лишнее.
@@ -316,6 +365,7 @@ app.whenReady().then(async () => {
     else if (process.argv.includes('--shake')) await shakeScenario();
     else if (process.argv.includes('--i18n')) await i18nScenario();
     else if (process.argv.includes('--screens')) await screensScenario();
+    else if (process.argv.includes('--langs')) await langsScenario();
     else await fullScenario();
   } catch (err) {
     console.error('SNAP ERROR', err);

@@ -269,6 +269,28 @@
     return row(t('display.label'), btn, { sub: displays.length > 1 ? t('display.count', { n: displays.length }) : null });
   }
 
+  // Выбор языка: «Как в системе» и все языки, каждый подписан на нём самом.
+  function languageRow() {
+    const label = h('span');
+    const btn = h('button', { type: 'button', class: 'select' }, label, h('span', { html: CHEVRONS, style: 'display:flex' }));
+    const options = () => [
+      { value: 'auto', label: t('lang.auto'), sub: I18N.languages().find((l) => l.code === lang)?.name },
+      ...I18N.languages().map((l) => ({ value: l.code, label: l.name, sub: l.english })),
+    ];
+    btn.addEventListener('click', () => menuPop(btn, options(), state.language, (v) => set('language', v)));
+    updaters.push(() => {
+      const o = options().find((x) => x.value === state.language);
+      label.textContent = o ? o.label : t('lang.auto');
+    });
+    return row(t('gen.lang'), btn, { sub: t('gen.langSub') });
+  }
+
+  function mouseLabelsRow() {
+    const short = I18N.mouseLabels(lang, 'short')[1];
+    const full = I18N.mouseLabels(lang, 'full')[1];
+    return row(t('mouse.labels'), segCtl('mouseLabels', [['short', short], ['full', full]]));
+  }
+
   function hotkeyRow() {
     const btn = h('button', { type: 'button', class: 'hk' });
     const err = h('div', { class: 'row-sub danger' });
@@ -537,7 +559,8 @@
   // Шторка в стиле iOS с историей изменений и своим переключателем Русский / English.
   function openWhatsNew() {
     closePop();
-    let notesLang = storage.get('ks.notesLang', lang);
+    // История изменений есть на русском и английском; для остальных языков по умолчанию — русский.
+    let notesLang = storage.get('ks.notesLang', lang === 'en' ? 'en' : 'ru');
     const entries = CHANGELOG.filter((e) => compareVersions(e.version, version || '0') <= 0);
     const title = h('div', { class: 'sheet-title' });
     const body = h('div', { class: 'sheet-body' });
@@ -659,7 +682,7 @@
             title: 'mouse.buttonsGroup',
             rows: () => [
               segRow('mouseClicks', 'mouse.clicks', [['all', 'clicks.all'], ['withMods', 'clicks.withMods'], ['off', 'clicks.off']]),
-              segRow('mouseLabels', 'mouse.labels', [['short', 'mlabel.short'], ['full', 'mlabel.full']]),
+              mouseLabelsRow(),
               toggleRow('showDrag', 'mouse.drag'),
               toggleRow('wheel', 'mouse.wheel'),
             ],
@@ -728,7 +751,7 @@
           },
           {
             title: 'gen.langGroup',
-            rows: () => [segRow('language', 'gen.lang', [['auto', 'lang.auto'], ['ru', 'lang.ru'], ['en', 'lang.en']], 'gen.langSub')],
+            rows: () => [languageRow()],
           },
           {
             title: 'gen.windowGroup',

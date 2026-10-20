@@ -1,353 +1,61 @@
-/* Тексты интерфейса на русском и английском. Общий модуль для главного процесса и окон.
-   Язык «Как в системе» определяется по первому языку Windows: русский → ru, иначе → en. */
+/* Языки интерфейса. Тексты лежат в src/locales/<код>.js — по файлу на язык.
+   «Как в системе» выбирает язык по первому языку Windows; если такого нет — английский.
+   Если в переводе не хватает строки, она берётся из запасного языка (для языков СНГ — русский). */
 (function (root, factory) {
-  const data = factory();
-  if (typeof module === 'object' && module.exports) module.exports = data;
-  else root.KeyShowI18n = data;
-})(typeof self !== 'undefined' ? self : this, function () {
-  const STRINGS = {
-    ru: {
-      'brand.sub': 'Показ нажатий для видео',
-      'master.label': 'Показ нажатий',
-      'master.sub': '{hotkey} — пауза',
-      'master.noHotkey': 'Горячая клавиша не задана',
-      'preview.label': 'Предпросмотр',
-      'preview.hint': 'Нажмите любые клавиши или кнопку мыши',
-      'preview.demo': 'Демо',
-      'preview.bgLight': 'Светлый фон',
-      'preview.bgDark': 'Тёмный фон',
-      'banner.hook': 'Не удалось подключиться к клавиатуре и мыши: {error}',
-      'banner.unknown': 'неизвестная ошибка',
-      'slider.reset': 'Двойной клик — значение по умолчанию',
-      'unit.sec': 'с',
-      'decimal': ',',
+  const isNode = typeof module === 'object' && module.exports;
+  const CODES = ['ru', 'en', 'be', 'kk', 'ky', 'tt', 'tg', 'uz', 'az', 'hy', 'ro', 'tk'];
+  const locales = isNode
+    ? Object.fromEntries(CODES.map((code) => [code, require('./locales/' + code + '.js')]))
+    : (root.KeyShowLocales || {});
+  const api = factory(CODES, locales);
+  if (isNode) module.exports = api;
+  else root.KeyShowI18n = api;
+})(typeof self !== 'undefined' ? self : this, function (CODES, LOCALES) {
+  const ALIASES = { mo: 'ro' }; // старый код молдавского
 
-      'color.blue': 'Синий', 'color.indigo': 'Индиго', 'color.purple': 'Фиолетовый', 'color.pink': 'Розовый',
-      'color.orange': 'Оранжевый', 'color.yellow': 'Жёлтый', 'color.green': 'Зелёный', 'color.graphite': 'Графит',
-      'color.white': 'Белый', 'color.custom': 'Свой цвет',
-
-      'pos.top-left': 'Сверху слева', 'pos.top-center': 'Сверху по центру', 'pos.top-right': 'Сверху справа',
-      'pos.middle-left': 'Слева по центру', 'pos.middle-center': 'По центру экрана', 'pos.middle-right': 'Справа по центру',
-      'pos.bottom-left': 'Снизу слева', 'pos.bottom-center': 'Снизу по центру', 'pos.bottom-right': 'Снизу справа',
-      'pos.sub': 'Новые сочетания появляются у края, предыдущие плавно отодвигаются.',
-
-      'display.label': 'Экран',
-      'display.primary': 'Основной экран',
-      'display.primaryTag': 'основной',
-      'display.count': 'Подключено экранов: {n}',
-      'display.name': 'Экран {n}',
-
-      'hk.label': 'Пауза / продолжить',
-      'hk.sub': 'Удобно, чтобы не светить пароли. Esc — отмена, Backspace — убрать',
-      'hk.none': 'Не задано',
-      'hk.press': 'Нажмите сочетание…',
-      'hk.needMod': 'Добавьте Ctrl, Alt, Shift или Win — иначе клавиша перестанет работать в других программах',
-      'hk.busy': 'Сочетание занято другой программой — выберите другое',
-
-      'reset': 'Сбросить все настройки',
-      'reset.confirm': 'Точно сбросить? Нажмите ещё раз',
-
-      'sec.look': 'Внешний вид', 'sec.behavior': 'Поведение', 'sec.mouse': 'Мышь', 'sec.motion': 'Анимация',
-      'sec.place': 'Положение', 'sec.general': 'Общие', 'sec.updates': 'Обновления',
-
-      'look.colorGroup': 'Цвет клавиш',
-      'look.textColor': 'Цвет текста',
-      'look.textColorSub': 'Для стиля «Заливка»',
-      'opt.auto': 'Авто', 'opt.white': 'Белый', 'opt.black': 'Чёрный',
-      'look.keysGroup': 'Клавиши',
-      'look.style': 'Стиль',
-      'style.solid': 'Заливка', 'style.glass': 'Стекло', 'style.light': 'Светлый', 'style.dark': 'Тёмный',
-      'look.size': 'Размер',
-      'look.radius': 'Скругление',
-      'look.opacity': 'Непрозрачность',
-      'look.shadow': 'Тень и объём',
-      'look.labelsGroup': 'Подписи',
-      'look.labelMode': 'Подписи клавиш',
-      'label.text': 'Текст', 'label.both': 'Символ + текст', 'label.icon': 'Символы',
-      'look.showPlus': 'Знак «+» между клавишами',
-      'look.backdrop': 'Подложка под сочетанием',
-      'look.backdropSub': 'Тёмная плашка — лучше читается на пёстром фоне',
-
-      'beh.timeGroup': 'Время',
-      'beh.linger': 'Держать после отпускания',
-      'beh.fade': 'Плавность исчезновения',
-      'beh.max': 'Сочетаний на экране',
-      'beh.timeFooter': 'Пока клавиши зажаты, сочетание не исчезает и подсвечивается. После отпускания оно держится заданное время и плавно растворяется.',
-      'beh.showGroup': 'Что показывать',
-      'beh.filter': 'Клавиши',
-      'filter.all': 'Все', 'filter.noTyping': 'Без набора текста', 'filter.combos': 'Только сочетания',
-      'beh.lone': 'Одиночные Ctrl, Shift, Alt, Win',
-      'beh.repeat': 'Счётчик повторов',
-      'beh.repeatSub': 'Ctrl + Z три раза подряд → «×3»',
-      'beh.sort': 'Модификаторы по порядку',
-      'beh.sortSub': 'Всегда Win → Ctrl → Alt → Shift, в каком бы порядке вы ни нажимали',
-      'beh.showFooter': '«Без набора текста» скрывает буквы и цифры, но показывает Enter, Esc, стрелки и все сочетания с Ctrl, Alt, Win.',
-      'beh.holdGroup': 'Удержание',
-      'beh.pulse': 'Пульсация зажатых клавиш',
-      'beh.fadeOlder': 'Приглушать предыдущие сочетания',
-
-      'mouse.buttonsGroup': 'Кнопки',
-      'mouse.clicks': 'Клики',
-      'clicks.all': 'Все', 'clicks.withMods': 'Только с клавишами', 'clicks.off': 'Не показывать',
-      'mouse.labels': 'Подписи',
-      'mlabel.short': 'ЛКМ', 'mlabel.full': 'Левый клик',
-      'mouse.drag': 'Показывать перетаскивание',
-      'mouse.wheel': 'Прокрутка колеса',
-      'mouse.footer': '«Только с клавишами» — клик появится, если в этот момент зажата клавиша: Ctrl + ЛКМ, Space + перетаскивание и т. п.',
-      'mouse.cursorGroup': 'Курсор',
-      'mouse.ripple': 'Круги при клике',
-      'mouse.rippleSub': 'Волна в месте клика и метка, пока кнопка зажата',
-      'mouse.halo': 'Подсветка курсора',
-      'mouse.haloSub': 'Плавно загорается, когда трясёте мышью',
-      'halo.off': 'Выкл.', 'halo.shake': 'При встряхивании', 'halo.always': 'Всегда',
-      'mouse.haloLinger': 'Гаснет через',
-      'mouse.findGroup': 'Найти курсор',
-      'mouse.grow': 'Увеличивать при встряхивании',
-      'mouse.growSub': 'Как на Mac: потрясите мышь — курсор станет крупным',
-      'mouse.growMax': 'Размер',
-      'mouse.findFooter': 'Крупная стрелка рисуется поверх экрана и попадает в запись. Системный курсор Windows остаётся видимым у её кончика — скрыть его безопасно нельзя.',
-
-      'motion.group': 'Появление',
-      'motion.effect': 'Эффект',
-      'anim.spring': 'Пружина', 'anim.smooth': 'Плавно', 'anim.pop': 'Всплытие', 'anim.none': 'Без',
-      'motion.speed': 'Скорость',
-      'motion.footer': 'Нажмите «Демо» в предпросмотре, чтобы сравнить эффекты.',
-
-      'place.whereGroup': 'Где показывать',
-      'place.marginGroup': 'Отступ от края',
-      'place.mx': 'По горизонтали',
-      'place.my': 'По вертикали',
-
-      'gen.controlGroup': 'Управление',
-      'gen.enabled': 'Показывать нажатия',
-      'gen.login': 'Запускать вместе с Windows',
-      'gen.loginSub': 'Стартует свёрнутым в трей',
-      'gen.langGroup': 'Язык',
-      'gen.lang': 'Язык приложения',
-      'gen.langSub': '«Как в системе» — по языку Windows',
-      'lang.auto': 'Как в системе', 'lang.ru': 'Русский', 'lang.en': 'English',
-      'gen.windowGroup': 'Окно настроек',
-      'gen.theme': 'Тема',
-      'theme.system': 'Как в системе', 'theme.light': 'Светлая', 'theme.dark': 'Тёмная',
-      'gen.demo': 'Показать демо на экране',
-      'gen.footer': 'Для записи в OBS используйте «Захват экрана», а не «Захват окна» — иначе оверлей не попадёт в кадр. Настройки сохраняются автоматически.',
-
-      'upd.auto': 'Обновлять автоматически',
-      'upd.autoSub': 'Скачивается в фоне и ставится, когда вы не пользуетесь компьютером',
-      'upd.footer': 'Обновление не прервёт запись: KeyShow ждёт, пока клавиатура и мышь простаивают полторы минуты, и только тогда тихо перезапускается.',
-      'upd.whatsNew': 'Что нового',
-      'upd.github': 'Все версии на GitHub',
-      'upd.s.dev': 'Обновления работают в установленной версии KeyShow',
-      'upd.s.idle': 'Проверка ещё не выполнялась',
-      'upd.s.checking': 'Проверяю обновления…',
-      'upd.s.latest': 'У вас последняя версия',
-      'upd.s.available': 'Доступна версия {v}',
-      'upd.s.downloading': 'Загружается версия {v}… {p}%',
-      'upd.s.readyAuto': 'Версия {v} загружена и установится сама, когда вы отойдёте от компьютера',
-      'upd.s.ready': 'Версия {v} загружена и готова к установке',
-      'upd.s.error': 'Не удалось проверить обновления: {e}',
-      'upd.s.offline': 'нет связи',
-      'upd.btn.check': 'Проверить обновления',
-      'upd.btn.download': 'Скачать и установить',
-      'upd.btn.install': 'Перезапустить и обновить сейчас',
-
-      'wn.title': 'Что нового',
-      'wn.done': 'Готово',
-      'wn.current': 'Текущая версия',
-
-      'tray.on': 'KeyShow — показ нажатий включён',
-      'tray.off': 'KeyShow — пауза',
-      'tray.show': 'Показывать нажатия',
-      'tray.demo': 'Показать демо',
-      'tray.settings': 'Настройки…',
-      'tray.quit': 'Выход',
-      'tray.update': 'Перезапустить и обновить до {v}',
-      'balloon.bg.title': 'KeyShow работает в фоне',
-      'balloon.bg.body': 'Настройки и выход — в иконке в трее. Пауза: {hotkey}',
-      'balloon.updated.title': 'KeyShow обновлён до {v}',
-      'balloon.updated.body': 'Нажмите, чтобы посмотреть, что нового',
-    },
-
-    en: {
-      'brand.sub': 'Keystrokes for your videos',
-      'master.label': 'Show keystrokes',
-      'master.sub': '{hotkey} — pause',
-      'master.noHotkey': 'No hotkey set',
-      'preview.label': 'Preview',
-      'preview.hint': 'Press any key or mouse button',
-      'preview.demo': 'Demo',
-      'preview.bgLight': 'Light background',
-      'preview.bgDark': 'Dark background',
-      'banner.hook': 'Could not connect to the keyboard and mouse: {error}',
-      'banner.unknown': 'unknown error',
-      'slider.reset': 'Double-click to reset',
-      'unit.sec': 's',
-      'decimal': '.',
-
-      'color.blue': 'Blue', 'color.indigo': 'Indigo', 'color.purple': 'Purple', 'color.pink': 'Pink',
-      'color.orange': 'Orange', 'color.yellow': 'Yellow', 'color.green': 'Green', 'color.graphite': 'Graphite',
-      'color.white': 'White', 'color.custom': 'Custom color',
-
-      'pos.top-left': 'Top left', 'pos.top-center': 'Top center', 'pos.top-right': 'Top right',
-      'pos.middle-left': 'Middle left', 'pos.middle-center': 'Center of the screen', 'pos.middle-right': 'Middle right',
-      'pos.bottom-left': 'Bottom left', 'pos.bottom-center': 'Bottom center', 'pos.bottom-right': 'Bottom right',
-      'pos.sub': 'New shortcuts appear at the edge; earlier ones smoothly move aside.',
-
-      'display.label': 'Display',
-      'display.primary': 'Primary display',
-      'display.primaryTag': 'primary',
-      'display.count': 'Displays connected: {n}',
-      'display.name': 'Display {n}',
-
-      'hk.label': 'Pause / resume',
-      'hk.sub': 'Handy for keeping passwords off screen. Esc cancels, Backspace clears',
-      'hk.none': 'Not set',
-      'hk.press': 'Press a shortcut…',
-      'hk.needMod': 'Add Ctrl, Alt, Shift or Win, otherwise the key stops working in other apps',
-      'hk.busy': 'This shortcut is taken by another app — choose another one',
-
-      'reset': 'Reset all settings',
-      'reset.confirm': 'Reset everything? Click again',
-
-      'sec.look': 'Appearance', 'sec.behavior': 'Behavior', 'sec.mouse': 'Mouse', 'sec.motion': 'Animation',
-      'sec.place': 'Position', 'sec.general': 'General', 'sec.updates': 'Updates',
-
-      'look.colorGroup': 'Key color',
-      'look.textColor': 'Text color',
-      'look.textColorSub': 'For the “Solid” style',
-      'opt.auto': 'Auto', 'opt.white': 'White', 'opt.black': 'Black',
-      'look.keysGroup': 'Keys',
-      'look.style': 'Style',
-      'style.solid': 'Solid', 'style.glass': 'Glass', 'style.light': 'Light', 'style.dark': 'Dark',
-      'look.size': 'Size',
-      'look.radius': 'Corner radius',
-      'look.opacity': 'Opacity',
-      'look.shadow': 'Shadow and depth',
-      'look.labelsGroup': 'Labels',
-      'look.labelMode': 'Key labels',
-      'label.text': 'Text', 'label.both': 'Symbol + text', 'label.icon': 'Symbols',
-      'look.showPlus': '“+” between keys',
-      'look.backdrop': 'Backdrop behind shortcuts',
-      'look.backdropSub': 'A dark plate that reads better on busy backgrounds',
-
-      'beh.timeGroup': 'Timing',
-      'beh.linger': 'Keep after release',
-      'beh.fade': 'Fade-out duration',
-      'beh.max': 'Shortcuts on screen',
-      'beh.timeFooter': 'While keys are held, the shortcut stays on screen and glows. After release it stays for the set time and then smoothly fades away.',
-      'beh.showGroup': 'What to show',
-      'beh.filter': 'Keys',
-      'filter.all': 'All', 'filter.noTyping': 'No typing', 'filter.combos': 'Shortcuts only',
-      'beh.lone': 'Ctrl, Shift, Alt, Win on their own',
-      'beh.repeat': 'Repeat counter',
-      'beh.repeatSub': 'Ctrl + Z three times in a row → “×3”',
-      'beh.sort': 'Consistent modifier order',
-      'beh.sortSub': 'Always Win → Ctrl → Alt → Shift, whatever order you press them in',
-      'beh.showFooter': '“No typing” hides letters and digits but still shows Enter, Esc, arrows and every shortcut with Ctrl, Alt or Win.',
-      'beh.holdGroup': 'Holding',
-      'beh.pulse': 'Pulse on held keys',
-      'beh.fadeOlder': 'Dim earlier shortcuts',
-
-      'mouse.buttonsGroup': 'Buttons',
-      'mouse.clicks': 'Clicks',
-      'clicks.all': 'All', 'clicks.withMods': 'With keys only', 'clicks.off': 'Hidden',
-      'mouse.labels': 'Labels',
-      'mlabel.short': 'LMB', 'mlabel.full': 'Left Click',
-      'mouse.drag': 'Show dragging',
-      'mouse.wheel': 'Scroll wheel',
-      'mouse.footer': '“With keys only” shows a click when a key is held at that moment: Ctrl + click, Space + drag and so on.',
-      'mouse.cursorGroup': 'Cursor',
-      'mouse.ripple': 'Click ripples',
-      'mouse.rippleSub': 'A ripple where you click and a marker while the button is held',
-      'mouse.halo': 'Cursor highlight',
-      'mouse.haloSub': 'Fades in smoothly when you shake the mouse',
-      'halo.off': 'Off', 'halo.shake': 'On shake', 'halo.always': 'Always',
-      'mouse.haloLinger': 'Fades after',
-      'mouse.findGroup': 'Find the cursor',
-      'mouse.grow': 'Enlarge on shake',
-      'mouse.growSub': 'Like on a Mac: shake the mouse and the pointer gets bigger',
-      'mouse.growMax': 'Size',
-      'mouse.findFooter': 'The large arrow is drawn on top of the screen and shows up in recordings. The Windows cursor stays visible at its tip — it can’t be hidden safely.',
-
-      'motion.group': 'Entrance',
-      'motion.effect': 'Effect',
-      'anim.spring': 'Spring', 'anim.smooth': 'Smooth', 'anim.pop': 'Pop', 'anim.none': 'None',
-      'motion.speed': 'Speed',
-      'motion.footer': 'Press “Demo” in the preview to compare the effects.',
-
-      'place.whereGroup': 'Where to show',
-      'place.marginGroup': 'Distance from the edge',
-      'place.mx': 'Horizontal',
-      'place.my': 'Vertical',
-
-      'gen.controlGroup': 'Controls',
-      'gen.enabled': 'Show keystrokes',
-      'gen.login': 'Start with Windows',
-      'gen.loginSub': 'Starts minimized to the tray',
-      'gen.langGroup': 'Language',
-      'gen.lang': 'App language',
-      'gen.langSub': '“System” follows your Windows language',
-      'lang.auto': 'System', 'lang.ru': 'Русский', 'lang.en': 'English',
-      'gen.windowGroup': 'Settings window',
-      'gen.theme': 'Theme',
-      'theme.system': 'System', 'theme.light': 'Light', 'theme.dark': 'Dark',
-      'gen.demo': 'Play demo on screen',
-      'gen.footer': 'When recording with OBS, use “Display Capture”, not “Window Capture”, or the overlay won’t be in the shot. Settings are saved automatically.',
-
-      'upd.auto': 'Update automatically',
-      'upd.autoSub': 'Downloads in the background and installs while you are away',
-      'upd.footer': 'An update never interrupts a recording: KeyShow waits until the keyboard and mouse have been idle for a minute and a half, then quietly restarts.',
-      'upd.whatsNew': 'What’s New',
-      'upd.github': 'All releases on GitHub',
-      'upd.s.dev': 'Updates work in the installed version of KeyShow',
-      'upd.s.idle': 'Not checked yet',
-      'upd.s.checking': 'Checking for updates…',
-      'upd.s.latest': 'You’re up to date',
-      'upd.s.available': 'Version {v} is available',
-      'upd.s.downloading': 'Downloading version {v}… {p}%',
-      'upd.s.readyAuto': 'Version {v} is downloaded and will install itself while you are away',
-      'upd.s.ready': 'Version {v} is downloaded and ready to install',
-      'upd.s.error': 'Couldn’t check for updates: {e}',
-      'upd.s.offline': 'no connection',
-      'upd.btn.check': 'Check for updates',
-      'upd.btn.download': 'Download and install',
-      'upd.btn.install': 'Restart and update now',
-
-      'wn.title': 'What’s New',
-      'wn.done': 'Done',
-      'wn.current': 'Current version',
-
-      'tray.on': 'KeyShow — showing keystrokes',
-      'tray.off': 'KeyShow — paused',
-      'tray.show': 'Show keystrokes',
-      'tray.demo': 'Play demo',
-      'tray.settings': 'Settings…',
-      'tray.quit': 'Quit',
-      'tray.update': 'Restart and update to {v}',
-      'balloon.bg.title': 'KeyShow keeps running in the background',
-      'balloon.bg.body': 'Settings and Quit are in the tray icon. Pause: {hotkey}',
-      'balloon.updated.title': 'KeyShow updated to {v}',
-      'balloon.updated.body': 'Click to see what’s new',
-    },
-  };
-
-  // Язык Windows → язык приложения.
-  function detect(locale) {
-    return String(locale || '').toLowerCase().startsWith('ru') ? 'ru' : 'en';
+  function detect(systemLocale) {
+    const base = String(systemLocale || '').toLowerCase().split(/[-_]/)[0];
+    const code = ALIASES[base] || base;
+    return LOCALES[code] ? code : 'en';
   }
 
   function resolve(setting, systemLocale) {
-    return setting === 'ru' || setting === 'en' ? setting : detect(systemLocale);
+    return LOCALES[setting] ? setting : detect(systemLocale);
+  }
+
+  // Язык и его запасные языки по цепочке, в конце всегда английский.
+  function chain(lang) {
+    const out = [];
+    let code = LOCALES[lang] ? lang : 'en';
+    while (code && LOCALES[code] && !out.includes(code)) {
+      out.push(code);
+      code = LOCALES[code].fallback;
+    }
+    if (!out.includes('en')) out.push('en');
+    return out.map((c) => LOCALES[c]).filter(Boolean);
   }
 
   function translator(lang) {
-    const dict = STRINGS[lang] || STRINGS.en;
+    const dicts = chain(lang);
     return (key, vars) => {
-      let s = dict[key] ?? STRINGS.en[key] ?? key;
+      let s = key;
+      for (const d of dicts) {
+        if (d.strings[key] != null) { s = d.strings[key]; break; }
+      }
       if (vars) s = s.replace(/\{(\w+)\}/g, (_, k) => (vars[k] ?? ''));
       return s;
     };
   }
 
-  return { STRINGS, detect, resolve, translator };
+  // Подписи кнопок мыши: { 1: 'ЛКМ', …, drag, scroll, button }.
+  function mouseLabels(lang, style) {
+    const m = chain(lang).find((d) => d.mouse).mouse;
+    return { ...(m[style] || m.short), drag: m.drag, scroll: m.scroll, button: m.button };
+  }
+
+  function languages() {
+    return CODES.filter((c) => LOCALES[c]).map((c) => ({ code: c, name: LOCALES[c].name, english: LOCALES[c].english }));
+  }
+
+  return { CODES, detect, resolve, translator, mouseLabels, languages };
 });

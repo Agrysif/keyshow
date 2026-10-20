@@ -1,7 +1,7 @@
 {
   "name": "keyshow",
   "productName": "KeyShow",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "Keystroke and mouse overlay for tutorial videos",
   "main": "src/main.js",
   "author": "Agrysif",
@@ -12,7 +12,8 @@
     "start": "electron .",
     "build": "electron-builder --win nsis --publish never",
     "build:dir": "electron-builder --win dir",
-    "release": "node scripts/release.js"
+    "release": "node scripts/release.js",
+    "check:locales": "node scripts/check-locales.js"
   },
   "dependencies": {
     "electron-updater": "^6.8.9",

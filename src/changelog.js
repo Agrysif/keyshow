@@ -8,6 +8,20 @@
 })(typeof self !== 'undefined' ? self : this, function () {
   return [
     {
+      version: '1.2.0',
+      date: '2026-10-20',
+      ru: [
+        'Интерфейс на 12 языках: русский, английский, белорусский, казахский, кыргызский, татарский, таджикский, узбекский, азербайджанский, армянский, румынский (Молдова) и туркменский.',
+        'При первом запуске язык выбирается по языку Windows, сменить его можно в разделе «Общие».',
+        'Подписи кнопок мыши на экране тоже переводятся на выбранный язык.',
+      ],
+      en: [
+        'The interface now speaks 12 languages: Russian, English, Belarusian, Kazakh, Kyrgyz, Tatar, Tajik, Uzbek, Azerbaijani, Armenian, Romanian (Moldova) and Turkmen.',
+        'On first launch the language follows your Windows language; you can change it under General.',
+        'On-screen mouse button labels follow the selected language as well.',
+      ],
+    },
+    {
       version: '1.1.0',
       date: '2026-10-20',
       ru: [

@@ -29,7 +29,9 @@
 - Счётчик повторов: `Ctrl + Z` три раза → `×3`.
 - Фильтры: все клавиши / без набора текста / только сочетания.
 - Настройка цвета (по умолчанию синий), стиля, размера, анимации, положения, монитора и многого другого.
-- Русский и английский интерфейс — выбирается автоматически по языку Windows, можно переключить вручную.
+- Интерфейс на 12 языках: русский, английский и языки стран СНГ (белорусский, казахский, кыргызский,
+  татарский, таджикский, узбекский, азербайджанский, армянский, румынский, туркменский). Язык выбирается
+  автоматически по языку Windows, его можно сменить вручную.
 - Пауза: `Ctrl + Alt + K` — чтобы не показывать в кадре ввод паролей.
 
 ## Скриншоты
@@ -70,7 +72,8 @@ KeyShow then keeps itself up to date: updates download in the background and ins
 away from the keyboard and mouse, so a recording is never interrupted. A bilingual “What’s New” window
 appears after each update.
 
-The interface is available in English and Russian and follows your Windows language by default.
+The interface is available in 12 languages — English, Russian and the languages of the CIS countries —
+and follows your Windows language by default.
 
 | Settings with a live preview | Mouse: Space + drag |
 | --- | --- |
@@ -107,7 +110,8 @@ npm run release
 | `src/main.js` | Главный процесс: глобальные хуки клавиатуры/мыши, окна, трей, настройки |
 | `src/updater.js` | Автообновление через GitHub Releases с установкой в простое |
 | `src/engine.js` | Логика сочетаний, удержания, повторов, анимации, эффекты курсора |
-| `src/i18n.js` | Тексты интерфейса на русском и английском |
+| `src/i18n.js` | Выбор языка и переводчик строк |
+| `src/locales/*.js` | Переводы интерфейса — по файлу на язык (проверка: `npm run check:locales`) |
 | `src/changelog.js` | История изменений для окна «Что нового» и заметок к релизу |
 | `src/keys.js` | Названия и иконки клавиш |
 | `src/overlay.*` | Прозрачное окно поверх всех |
