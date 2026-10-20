@@ -142,6 +142,8 @@
     'upd.footer': 'An update never interrupts a recording: KeyShow waits until the keyboard and mouse have been idle for a minute and a half, then quietly restarts.',
     'upd.whatsNew': 'What’s New',
     'upd.github': 'All releases on GitHub',
+    'donate': 'Support the author',
+    'donate.sub': 'Donate via Donation Alerts',
     'upd.s.dev': 'Updates work in the installed version of KeyShow',
     'upd.s.idle': 'Not checked yet',
     'upd.s.checking': 'Checking for updates…',

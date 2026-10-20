@@ -5,6 +5,7 @@
 //   --i18n       окно настроек на двух языках, «Обновления» и «Что нового»
 //   --screens    скриншоты для README в docs/screenshots (сцены из scripts/showcase.html)
 //   --langs      окно настроек на всех языках: поиск вылезающего или обрезанного текста
+//   --donate     кнопки «Поддержать автора» открывают нужную ссылку (браузер не открывается)
 //   --real-hook  дополнительно отправить в систему безопасное Shift + F15 (проверка настоящего хука)
 'use strict';
 
@@ -204,6 +205,21 @@ async function langsScenario() {
   console.log(total ? `Проблем вёрстки: ${total}` : 'Вёрстка в порядке на всех языках');
 }
 
+// Кнопки «Поддержать автора»: вместо открытия браузера пишем адрес в лог.
+async function donateScenario() {
+  const { shell } = require('electron');
+  const opened = [];
+  shell.openExternal = async (url) => { opened.push(url); };
+  const { settings } = windows();
+  await settings.webContents.executeJavaScript("document.getElementById('donateBtn').click()");
+  await clickNav('updates');
+  await settings.webContents.executeJavaScript(
+    "[...document.querySelectorAll('.row.btn')].find((r) => r.textContent.includes('♥')).click()",
+  );
+  await sleep(300);
+  console.log('opened:', opened.join(' | ') || 'ничего');
+}
+
 // Скриншоты для README → docs/screenshots. Настоящий ввод отключён, чтобы в кадр не попало лишнее.
 async function screensScenario() {
   const shots = path.join(__dirname, '..', 'docs', 'screenshots');
@@ -366,6 +382,7 @@ app.whenReady().then(async () => {
     else if (process.argv.includes('--i18n')) await i18nScenario();
     else if (process.argv.includes('--screens')) await screensScenario();
     else if (process.argv.includes('--langs')) await langsScenario();
+    else if (process.argv.includes('--donate')) await donateScenario();
     else await fullScenario();
   } catch (err) {
     console.error('SNAP ERROR', err);

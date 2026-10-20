@@ -142,6 +142,8 @@
     'upd.footer': 'Yangilanish yozib olishni toʻxtatmaydi: KeyShow klaviatura va sichqoncha bir yarim daqiqa boʻsh turishini kutadi va shundan keyingina jimgina qayta ishga tushadi.',
     'upd.whatsNew': 'Nima yangilik',
     'upd.github': 'GitHub’dagi barcha versiyalar',
+    'donate': 'Muallifni qoʻllab-quvvatlash',
+    'donate.sub': 'Donation Alerts orqali xayriya',
     'upd.s.dev': 'Yangilanishlar KeyShow’ning oʻrnatilgan versiyasida ishlaydi',
     'upd.s.idle': 'Tekshiruv hali oʻtkazilmagan',
     'upd.s.checking': 'Yangilanishlar tekshirilmoqda…',

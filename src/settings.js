@@ -771,7 +771,11 @@
           { title: '', rows: () => [toggleRow('autoUpdate', 'upd.auto', 'upd.autoSub')], footer: 'upd.footer' },
           {
             title: '',
-            rows: () => [buttonRow(t('upd.whatsNew'), openWhatsNew), buttonRow(t('upd.github'), () => api.openReleases())],
+            rows: () => [
+              buttonRow(t('upd.whatsNew'), openWhatsNew),
+              buttonRow(t('upd.github'), () => api.openReleases()),
+              buttonRow('♥ ' + t('donate'), () => api.openDonate()),
+            ],
           },
         ],
       },
@@ -841,6 +845,7 @@
     );
     $('#pvBg').replaceWith(previewSeg.el);
     $('#demoBtn').addEventListener('click', () => api.demo());
+    $('#donateBtn').addEventListener('click', () => api.openDonate());
   }
 
   // ---------------------------------------------------------------- init

@@ -8,6 +8,16 @@
 })(typeof self !== 'undefined' ? self : this, function () {
   return [
     {
+      version: '1.3.0',
+      date: '2026-10-20',
+      ru: [
+        'Кнопка «Поддержать автора» внизу окна настроек, в разделе «Обновления» и в меню трея — открывает страницу Donation Alerts. Спасибо за поддержку!',
+      ],
+      en: [
+        'A “Support the author” button at the bottom of Settings, in the Updates section and in the tray menu opens the Donation Alerts page. Thank you for your support!',
+      ],
+    },
+    {
       version: '1.2.0',
       date: '2026-10-20',
       ru: [

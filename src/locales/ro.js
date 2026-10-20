@@ -142,6 +142,8 @@
     'upd.footer': 'Actualizarea nu va întrerupe înregistrarea: KeyShow așteaptă ca tastatura și mouse-ul să nu fie folosite un minut și jumătate și abia apoi repornește discret.',
     'upd.whatsNew': 'Ce este nou',
     'upd.github': 'Toate versiunile pe GitHub',
+    'donate': 'Susține autorul',
+    'donate.sub': 'Donație prin Donation Alerts',
     'upd.s.dev': 'Actualizările funcționează în versiunea instalată a KeyShow',
     'upd.s.idle': 'Verificarea nu a fost făcută încă',
     'upd.s.checking': 'Se caută actualizări…',

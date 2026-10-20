@@ -142,6 +142,8 @@
     'upd.footer': 'Täzelenme ýazgyny bölmez: KeyShow klawiatura we syçan bir ýarym minut boş durýança garaşýar we diňe şondan soň sessiz täzeden açylýar.',
     'upd.whatsNew': 'Näme täzelik',
     'upd.github': 'GitHub-daky ähli wersiýalar',
+    'donate': 'Awtory goldamak',
+    'donate.sub': 'Donation Alerts arkaly goldaw',
     'upd.s.dev': 'Täzelenmeler KeyShow-yň gurnalan wersiýasynda işleýär',
     'upd.s.idle': 'Barlag heniz geçirilmedi',
     'upd.s.checking': 'Täzelenmeler barlanýar…',

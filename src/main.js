@@ -9,6 +9,7 @@ const { createUpdater } = require('./updater');
 const I18N = require('./i18n');
 
 const RELEASES_URL = 'https://github.com/Agrysif/keyshow/releases';
+const DONATE_URL = 'https://www.donationalerts.com/r/agrysif';
 
 let uIOhook = null;
 let UiohookKey = {};
@@ -387,6 +388,7 @@ function updateTray() {
     },
     { label: tr('tray.demo'), click: runDemo },
     { label: tr('tray.settings'), click: openSettings },
+    { label: '♥ ' + tr('donate'), click: () => shell.openExternal(DONATE_URL) },
     { type: 'separator' },
     { label: tr('tray.quit'), click: () => { quitting = true; app.quit(); } },
   ]));
@@ -559,6 +561,7 @@ ipcMain.on('whatsnew-seen', () => {
   saveSettings();
 });
 ipcMain.on('open-releases', () => shell.openExternal(RELEASES_URL));
+ipcMain.on('open-donate', () => shell.openExternal(DONATE_URL));
 ipcMain.on('demo', () => runDemo());
 ipcMain.on('hotkey-suspend', (_e, on) => {
   hotkeySuspended = !!on;

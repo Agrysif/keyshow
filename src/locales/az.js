@@ -142,6 +142,8 @@
     'upd.footer': 'Yeniləmə yazını kəsməyəcək: KeyShow klaviatura və siçan bir yarım dəqiqə boş qalana qədər gözləyir və yalnız bundan sonra səssizcə yenidən başlayır.',
     'upd.whatsNew': 'Nə yenilik var',
     'upd.github': 'GitHub-da bütün versiyalar',
+    'donate': 'Müəllifi dəstəklə',
+    'donate.sub': 'Donation Alerts vasitəsilə ianə',
     'upd.s.dev': 'Yeniləmələr KeyShow-un quraşdırılmış versiyasında işləyir',
     'upd.s.idle': 'Yoxlama hələ aparılmayıb',
     'upd.s.checking': 'Yeniləmələr yoxlanılır…',
