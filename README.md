@@ -2,6 +2,8 @@
 
 **RU** · [EN](#english)
 
+![KeyShow поверх редактора: сочетания клавиш стопкой, новое зажато](docs/screenshots/hero.png)
+
 Оверлей поверх всех окон для записи обучающих видео (Figma, Photoshop, Illustrator, PowerPoint и т. д.).
 Показывает нажатые клавиши и сочетания любой длины (`Ctrl + Alt + Shift + K`), кнопки мыши,
 перетаскивание и прокрутку. Пока клавиша зажата, она «вдавлена» и подсвечена; после отпускания
@@ -30,6 +32,22 @@
 - Русский и английский интерфейс — выбирается автоматически по языку Windows, можно переключить вручную.
 - Пауза: `Ctrl + Alt + K` — чтобы не показывать в кадре ввод паролей.
 
+## Скриншоты
+
+| Настройки с живым предпросмотром | «Что нового» после обновления |
+| --- | --- |
+| ![Окно настроек KeyShow, тёмная тема](docs/screenshots/settings-ru.png) | ![Окно «Что нового» на русском](docs/screenshots/whatsnew-ru.png) |
+| **Мышь: Space + перетаскивание, метка под курсором** | **Найти курсор: потрясите мышь** |
+| ![Space + ЛКМ с перетаскиванием](docs/screenshots/mouse-ru.png) | ![Увеличенный курсор с подсветкой](docs/screenshots/find-cursor.png) |
+
+Стили клавиш — заливка, стекло, светлый и тёмный — на разном фоне:
+
+![Четыре стиля клавиш](docs/screenshots/styles.png)
+
+Раздел «Обновления»: статус, ручная проверка и история версий.
+
+![Раздел «Обновления»](docs/screenshots/updates-ru.png)
+
 ## Советы для записи
 
 - В OBS используйте **«Захват экрана»**, а не «Захват окна» — иначе оверлей не попадёт в кадр.
@@ -53,6 +71,10 @@ away from the keyboard and mouse, so a recording is never interrupted. A bilingu
 appears after each update.
 
 The interface is available in English and Russian and follows your Windows language by default.
+
+| Settings with a live preview | Mouse: Space + drag |
+| --- | --- |
+| ![KeyShow settings in English, light theme](docs/screenshots/settings-en.png) | ![Space + LMB drag with a marker under the cursor](docs/screenshots/mouse-en.png) |
 
 **Tip:** in OBS use *Display Capture*, not *Window Capture*, otherwise the overlay won’t be recorded.
 
@@ -91,4 +113,5 @@ npm run release
 | `src/overlay.*` | Прозрачное окно поверх всех |
 | `src/settings.*` | Окно настроек в стиле iOS с живым предпросмотром |
 | `scripts/release.js` | Сборка и публикация релиза |
-| `scripts/snap.js` | Только для разработки: прогон сценариев и снимки окон |
+| `scripts/snap.js` | Только для разработки: прогон сценариев и снимки окон (`--screens` обновляет `docs/screenshots`) |
+| `scripts/showcase.*` | Сцены для скриншотов README на настоящем движке |

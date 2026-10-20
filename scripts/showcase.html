@@ -1,0 +1,172 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <!-- Только для разработки: сцены для скриншотов README (scripts/snap.js --screens). -->
+  <title>KeyShow showcase</title>
+  <link rel="stylesheet" href="../src/keycaps.css">
+  <style>
+    html, body { margin: 0; width: 100%; height: 100%; overflow: hidden; }
+    body {
+      font-family: "Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif;
+      -webkit-font-smoothing: antialiased;
+      background: #1E1E1E;
+    }
+    .scene { position: relative; width: 100%; height: 100%; display: none; }
+    body[data-scene="hero"] #design,
+    body[data-scene="mouse"] #design,
+    body[data-scene="shake"] #design { display: grid; }
+    body[data-scene="styles"] #styles { display: grid; }
+
+    /* ---------- Условный редактор дизайна ---------- */
+    #design {
+      grid-template-rows: 48px 1fr;
+      background: #E9E9EC;
+    }
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 16px;
+      background: #2C2C2E;
+      color: #E5E5EA;
+      font-size: 13px;
+    }
+    .tb-group { display: flex; align-items: center; gap: 10px; }
+    .tb-tool { width: 30px; height: 30px; border-radius: 7px; background: rgba(255,255,255,.08); }
+    .tb-tool.on { background: #636366; }
+    .tb-title { color: #AEAEB2; }
+    .tb-title b { color: #FFFFFF; font-weight: 600; }
+    .avatar { width: 26px; height: 26px; border-radius: 50%; background: linear-gradient(135deg, #8E8E93, #636366); }
+    .share { padding: 6px 14px; border-radius: 7px; background: #3A3A3C; color: #FFFFFF; font-weight: 600; }
+    .main { display: grid; grid-template-columns: 250px 1fr 270px; min-height: 0; }
+    .panel { background: #FFFFFF; padding: 14px 12px; display: flex; flex-direction: column; gap: 6px; }
+    .panel.left { border-right: 1px solid #E5E5EA; }
+    .panel.right { border-left: 1px solid #E5E5EA; }
+    .panel h4 { margin: 4px 6px 8px; font-size: 12px; font-weight: 600; color: #1C1C1E; }
+    .layer { display: flex; align-items: center; gap: 9px; padding: 6px 8px; border-radius: 6px; }
+    .layer.sel { background: #E8F1FF; }
+    .layer i { width: 14px; height: 14px; border-radius: 3px; border: 1.5px solid #8E8E93; flex: none; }
+    .layer span { height: 8px; border-radius: 4px; background: #D1D1D6; }
+    .layer.sel span { background: #A9C8F5; }
+    .prop { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 2px 6px 10px; }
+    .prop span { height: 28px; border-radius: 6px; background: #F2F2F7; }
+    .swatch-row { display: flex; gap: 8px; margin: 0 6px 12px; }
+    .swatch-row span { width: 28px; height: 28px; border-radius: 6px; }
+    .canvas { position: relative; display: grid; place-items: center; overflow: hidden; }
+    .artboard {
+      position: relative;
+      width: 640px;
+      height: 520px;
+      border-radius: 4px;
+      background: #FFFFFF;
+      box-shadow: 0 2px 12px rgba(0,0,0,.08);
+      padding: 40px 44px;
+      box-sizing: border-box;
+    }
+    .ab-label { position: absolute; top: -22px; left: 0; font-size: 12px; color: #8E8E93; }
+    .ab-nav { display: flex; justify-content: space-between; margin-bottom: 56px; }
+    .ab-nav i { display: block; height: 10px; border-radius: 5px; background: #E5E5EA; }
+    .ab-h1 { height: 30px; width: 78%; border-radius: 8px; background: #1C1C1E; margin-bottom: 14px; }
+    .ab-h1.short { width: 52%; }
+    .ab-p { height: 10px; border-radius: 5px; background: #D1D1D6; margin: 12px 0; }
+    .ab-row { display: flex; gap: 14px; margin-top: 30px; }
+    .ab-btn { width: 150px; height: 46px; border-radius: 12px; background: #5E5CE6; }
+    .ab-btn.ghost { background: #F2F2F7; }
+    .ab-cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-top: 40px; }
+    .ab-cards div { height: 104px; border-radius: 12px; }
+    .sel-box {
+      position: absolute;
+      outline: 1.5px solid #0D99FF;
+    }
+    .sel-box::before, .sel-box::after {
+      content: ''; position: absolute; width: 7px; height: 7px; background: #FFF; border: 1.5px solid #0D99FF;
+    }
+    .sel-box::before { left: -5px; top: -5px; }
+    .sel-box::after { right: -5px; bottom: -5px; }
+    .fake-cursor { position: absolute; z-index: 5; width: 14px; height: 21px; margin: -1px 0 0 -1px; filter: drop-shadow(0 1px 2px rgba(0,0,0,.35)); }
+
+    /* Слой оверлея поверх «экрана» */
+    .overlay { position: absolute; inset: 0; pointer-events: none; }
+
+    /* ---------- Стили клавиш ---------- */
+    #styles {
+      height: 520px;
+      grid-template-columns: 1fr 1fr;
+      grid-template-rows: 1fr 1fr;
+      gap: 0;
+    }
+    .tile { position: relative; overflow: hidden; }
+    .tile .cap-label {
+      position: absolute; left: 22px; top: 18px;
+      font-size: 14px; font-weight: 600; letter-spacing: .02em;
+    }
+    .tile.dark { background: #1E1E1E; }
+    .tile.dark .cap-label { color: rgba(255,255,255,.55); }
+    .tile.light { background: #FFFFFF; }
+    .tile.light .cap-label { color: rgba(0,0,0,.45); }
+    .tile.photo { background: linear-gradient(135deg, #FF9F0A 0%, #FF375F 45%, #5E5CE6 100%); }
+    .tile.photo .cap-label { color: rgba(255,255,255,.8); }
+    .tile.canvas-bg { background: #E9E9EC; }
+    .tile.canvas-bg .cap-label { color: rgba(0,0,0,.45); }
+    .tile .ks-root { position: absolute; inset: 0; }
+  </style>
+</head>
+<body data-scene="hero">
+  <div id="design" class="scene">
+    <div class="topbar">
+      <div class="tb-group"><span class="tb-tool on"></span><span class="tb-tool"></span><span class="tb-tool"></span><span class="tb-tool"></span><span class="tb-tool"></span></div>
+      <div class="tb-title">Drafts / <b>Landing page</b></div>
+      <div class="tb-group"><span class="avatar"></span><span class="share">Share</span></div>
+    </div>
+    <div class="main">
+      <aside class="panel left">
+        <h4>Layers</h4>
+        <div class="layer"><i></i><span style="width:120px"></span></div>
+        <div class="layer"><i></i><span style="width:90px"></span></div>
+        <div class="layer sel"><i></i><span style="width:110px"></span></div>
+        <div class="layer"><i></i><span style="width:70px"></span></div>
+        <div class="layer"><i></i><span style="width:130px"></span></div>
+        <div class="layer"><i></i><span style="width:84px"></span></div>
+        <div class="layer"><i></i><span style="width:100px"></span></div>
+      </aside>
+      <div class="canvas" id="canvas">
+        <div class="artboard" id="artboard">
+          <div class="ab-label">Desktop — 1440</div>
+          <div class="ab-nav"><i style="width:90px"></i><i style="width:220px"></i></div>
+          <div class="ab-h1"></div>
+          <div class="ab-h1 short"></div>
+          <div class="ab-p" style="width:88%"></div>
+          <div class="ab-p" style="width:70%"></div>
+          <div class="ab-row"><div class="ab-btn" id="cta"></div><div class="ab-btn ghost"></div></div>
+          <div class="ab-cards">
+            <div style="background:linear-gradient(135deg,#FFD60A,#FF9F0A)"></div>
+            <div style="background:linear-gradient(135deg,#64D2FF,#5E5CE6)"></div>
+            <div style="background:linear-gradient(135deg,#30D158,#64D2FF)"></div>
+          </div>
+        </div>
+      </div>
+      <aside class="panel right">
+        <h4>Design</h4>
+        <div class="prop"><span></span><span></span><span></span><span></span></div>
+        <h4>Fill</h4>
+        <div class="swatch-row"><span style="background:#5E5CE6"></span><span style="background:#F2F2F7"></span></div>
+        <h4>Effects</h4>
+        <div class="prop"><span></span><span></span></div>
+      </aside>
+    </div>
+    <div class="overlay ks-root" id="ovRoot"><div id="fx" class="ks-fx"></div><div id="stage"></div></div>
+  </div>
+
+  <div id="styles" class="scene">
+    <div class="tile dark" data-style="solid"><div class="cap-label">Заливка · Solid</div></div>
+    <div class="tile photo" data-style="glass"><div class="cap-label">Стекло · Glass</div></div>
+    <div class="tile canvas-bg" data-style="light"><div class="cap-label">Светлый · Light</div></div>
+    <div class="tile light" data-style="dark"><div class="cap-label">Тёмный · Dark</div></div>
+  </div>
+
+  <script src="../src/keys.js"></script>
+  <script src="../src/engine.js"></script>
+  <script src="showcase.js"></script>
+</body>
+</html>

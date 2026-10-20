@@ -3,6 +3,7 @@
 //   --dot        только проверка метки у курсора
 //   --shake      только проверка подсветки и увеличения курсора при встряхивании
 //   --i18n       окно настроек на двух языках, «Обновления» и «Что нового»
+//   --screens    скриншоты для README в docs/screenshots (сцены из scripts/showcase.html)
 //   --real-hook  дополнительно отправить в систему безопасное Shift + F15 (проверка настоящего хука)
 'use strict';
 
@@ -12,6 +13,10 @@ const fs = require('fs');
 
 const outDir = process.argv.find((a, i) => i > 1 && !a.startsWith('-') && !a.endsWith('.js')) || path.join(__dirname, '..', 'snaps');
 fs.mkdirSync(outDir, { recursive: true });
+
+// В снимках показываем версию приложения, а не версию Electron.
+const pkg = require('../package.json');
+app.getVersion = () => pkg.version;
 
 require('../src/main.js');
 
@@ -150,6 +155,79 @@ async function i18nScenario() {
   await sleep(300);
 }
 
+// Скриншоты для README → docs/screenshots. Настоящий ввод отключён, чтобы в кадр не попало лишнее.
+async function screensScenario() {
+  const shots = path.join(__dirname, '..', 'docs', 'screenshots');
+  fs.mkdirSync(shots, { recursive: true });
+  require('uiohook-napi').uIOhook.stop();
+  const { settings } = windows();
+  const save = async (win, name, rect) => {
+    const img = await win.webContents.capturePage(rect);
+    fs.writeFileSync(path.join(shots, name + '.png'), img.toPNG());
+  };
+  const toSettings = (t, kind, name) => settings.webContents.send('input', { t, kind, name, x: null, y: null });
+  const clickRow = (text) => settings.webContents.executeJavaScript(
+    `[...document.querySelectorAll('.row.btn')].find((r) => r.textContent.includes(${JSON.stringify(text)})).click()`,
+  );
+  settings.webContents.send('status', { hookOk: true, hookError: null, hotkeyOk: true });
+
+  // 1. Настройки: тёмная тема, русский, зажато Ctrl + Shift + S
+  emit('set', { theme: 'dark', language: 'ru' });
+  await sleep(700);
+  await clickNav('look');
+  for (const k of ['Ctrl', 'Shift', 'S']) { toSettings('down', 'key', k); await sleep(60); }
+  await sleep(900);
+  await save(settings, 'settings-ru');
+  for (const k of ['S', 'Shift', 'Ctrl']) toSettings('up', 'key', k);
+  await sleep(2600);
+
+  // 2. Настройки: светлая тема, английский, раздел «Мышь», Ctrl + ЛКМ
+  emit('set', { theme: 'light', language: 'en' });
+  await sleep(700);
+  await clickNav('mouse');
+  toSettings('down', 'key', 'Ctrl'); await sleep(80); toSettings('down', 'mouse', 1);
+  await sleep(900);
+  await save(settings, 'settings-en');
+  toSettings('up', 'mouse', 1); toSettings('up', 'key', 'Ctrl');
+  await sleep(2600);
+
+  // 3. «Что нового» и «Обновления»
+  emit('set', { theme: 'dark', language: 'ru' });
+  await sleep(700);
+  await clickNav('updates');
+  settings.webContents.send('update', { status: 'latest' });
+  await sleep(300);
+  await save(settings, 'updates-ru');
+  await clickRow('Что нового');
+  await sleep(800);
+  await save(settings, 'whatsnew-ru');
+  await settings.webContents.executeJavaScript("document.querySelector('.sheet .btn-primary').click()");
+  await sleep(400);
+
+  // 4. Сцены с настоящим движком поверх условного редактора (окно прозрачное для пользователя)
+  const sc = new BrowserWindow({
+    width: 1600, height: 900, useContentSize: true, show: false, frame: false,
+    opacity: 0, focusable: false, skipTaskbar: true,
+    webPreferences: { backgroundThrottling: false },
+  });
+  sc.showInactive();
+  const scenes = [
+    ['hero', 'ru', 'hero'],
+    ['mouse', 'ru', 'mouse-ru'],
+    ['mouse', 'en', 'mouse-en'],
+    ['shake', 'ru', 'find-cursor', { x: 440, y: 214, width: 700, height: 440 }],
+    ['styles', 'ru', 'styles', { x: 0, y: 0, width: 1600, height: 520 }],
+  ];
+  for (const [scene, lang, name, rect] of scenes) {
+    await sc.loadFile(path.join(__dirname, 'showcase.html'));
+    await sc.webContents.executeJavaScript(`showcase.${scene}(${JSON.stringify(lang)})`);
+    await save(sc, name, rect);
+  }
+  sc.destroy();
+  emit('set', { theme: 'system', language: 'auto' });
+  console.log('screens saved to', shots);
+}
+
 async function fullScenario() {
   // 1. Ctrl + Shift + S — зажато
   key('down', 'Ctrl'); await sleep(120); key('down', 'Shift'); await sleep(120); key('down', 'S');
@@ -237,6 +315,7 @@ app.whenReady().then(async () => {
     if (process.argv.includes('--dot')) await dotScenario();
     else if (process.argv.includes('--shake')) await shakeScenario();
     else if (process.argv.includes('--i18n')) await i18nScenario();
+    else if (process.argv.includes('--screens')) await screensScenario();
     else await fullScenario();
   } catch (err) {
     console.error('SNAP ERROR', err);
