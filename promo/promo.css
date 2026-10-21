@@ -24,6 +24,82 @@ body {
 #gl { width: 1920px; height: 1080px; }
 .scene { display: none; }
 .scene.on { display: block; }
+#introOv { display: none; pointer-events: none; }
+#introOv.on { display: block; }
+
+/* ---------- Моушен: слово, сочетания, брейк, дроп ---------- */
+#motion { background: #05060B; }
+#mCam { position: absolute; inset: 0; transform-origin: 50% 50%; }
+.m-layer { position: absolute; inset: 0; }
+.m-item { position: absolute; left: 0; top: 0; width: 0; height: 0; }
+.m-center { position: absolute; left: 0; top: 0; width: max-content; transform: translate(-50%, -50%); }
+#mGrid {
+  position: absolute;
+  inset: -25%;
+  background-image: radial-gradient(rgba(140, 175, 255, .22) 1.6px, transparent 2.1px);
+  background-size: 46px 46px;
+}
+#mGlow {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse 55% 50% at 50% 50%, rgba(10, 132, 255, .34), rgba(10, 132, 255, 0) 72%);
+}
+#mLabel {
+  position: absolute;
+  left: 0; right: 0;
+  top: 668px;
+  text-align: center;
+  font-size: 46px;
+  font-weight: 600;
+  color: rgba(235, 240, 255, .8);
+  letter-spacing: .01em;
+}
+.m-text {
+  position: absolute;
+  left: 0; right: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  text-align: center;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  line-height: 1.1;
+}
+#mBreak { font-size: 124px; }
+#mBreak .accent { color: #4DA3FF; }
+#mTag { font-size: 128px; filter: drop-shadow(0 6px 26px rgba(0, 24, 90, .35)); }
+.m-line { white-space: nowrap; }
+.m-w { display: inline-block; }
+.m-hl { position: relative; display: inline-block; }
+#mBar {
+  position: absolute;
+  left: .04em; right: .04em;
+  bottom: -4px;
+  height: 12px;
+  border-radius: 6px;
+  background: #FFFFFF;
+  transform-origin: 0 50%;
+}
+#mFlood {
+  position: absolute;
+  border-radius: 50%;
+  background: radial-gradient(circle, #3A97FF 0%, #0A7AF5 42%, #0552D6 100%);
+}
+.m-ring {
+  position: absolute;
+  box-sizing: border-box;
+  border-radius: 50%;
+  border-style: solid;
+}
+#mCursor {
+  position: absolute;
+  left: 0; top: 0;
+  width: 72px;
+  height: 108px;
+  margin: -5px 0 0 -5px;
+  transform-origin: 5px 5px;
+  filter: drop-shadow(0 4px 10px rgba(0, 0, 0, .45));
+}
+#mCursor svg { width: 100%; height: 100%; display: block; }
 
 /* ---------- Условный редактор дизайна ---------- */
 #app { background: #E9E9EC; }
@@ -119,6 +195,7 @@ body {
 .tile.photo { background: linear-gradient(135deg, #FF9F0A 0%, #FF375F 45%, #5E5CE6 100%); }
 .tile.canvas-bg { background: #E9E9EC; background-image: radial-gradient(rgba(0,0,0,.08) 1.4px, transparent 1.8px); background-size: 34px 34px; }
 .tile.white { background: #FFFFFF; }
+.tile.violet { background: radial-gradient(ellipse at 50% 40%, #2A1B45 0%, #0D0A16 70%); }
 #styles::after {
   content: '';
   position: absolute;

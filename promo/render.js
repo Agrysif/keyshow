@@ -1,7 +1,7 @@
 // Покадровый рендер промо-ролика в MP4 (H.264 1080p60 + AAC).
 //   npx electron promo/render.js                       → promo/out/KeyShow-promo.mp4
 //   npx electron promo/render.js --stills 1,3.6,8      → PNG-кадры в promo/out/stills
-// Нужен ffmpeg в PATH и трек в promo/music/uplifting-bass.mp3 (Mixkit, «Uplifting Bass» — Lily J).
+// Нужен ffmpeg в PATH и трек в promo/music/keyshow-suno.mp3 (сгенерирован в Suno под этот ролик).
 'use strict';
 
 const { app, BrowserWindow, nativeImage } = require('electron');
@@ -19,7 +19,7 @@ const arg = (name, def) => {
 };
 const OUT_DIR = path.join(__dirname, 'out');
 const OUT = arg('--out', path.join(OUT_DIR, 'KeyShow-promo.mp4'));
-const MUSIC = arg('--music', path.join(__dirname, 'music', 'uplifting-bass.mp3'));
+const MUSIC = arg('--music', path.join(__dirname, 'music', 'keyshow-suno.mp3'));
 const STILLS = arg('--stills', null);
 const W = 1920;
 const H = 1080;
@@ -74,7 +74,7 @@ app.whenReady().then(async () => {
       const size = img.getSize();
       const bmp = (size.width === W && size.height === H ? img : img.resize({ width: W, height: H })).toBitmap();
       const m = markerOf(bmp);
-      if ((m.r === frame % 64 && m.g === Math.floor(frame / 64) && Math.abs(m.b - 170) < 6) || Date.now() > deadline) {
+      if ((m.r === frame % 64 && m.g === Math.floor(frame / 64) % 64 && Math.abs(m.b - 170) < 6) || Date.now() > deadline) {
         if (Date.now() > deadline) {
           const o = ((H - 2) * W + (W - 2)) * 4;
           console.warn(`кадр ${frame}: метка не дождалась, в снимке rgb(${bmp[o + 2]},${bmp[o + 1]},${bmp[o]}) → ${JSON.stringify(m)}`);
@@ -119,7 +119,7 @@ app.whenReady().then(async () => {
     '-y', '-loglevel', 'error',
     '-f', 'rawvideo', '-pix_fmt', 'bgra', '-s', `${W}x${H}`, '-r', String(subFps), '-i', '-',
     '-ss', String(meta.musicStart), '-t', String(meta.duration), '-i', MUSIC,
-    '-filter_complex', `[0:v]${vf}[v];[1:a]volume=-1.5dB,afade=t=in:st=0:d=0.05,afade=t=out:st=${meta.duration - 1.4}:d=1.4[a]`,
+    '-filter_complex', `[0:v]${vf}[v];[1:a]volume=-1.5dB,afade=t=in:st=0:d=0.05,afade=t=out:st=${meta.duration - 1.2}:d=1.2[a]`,
     '-map', '[v]', '-map', '[a]',
     '-c:v', 'libx264', '-preset', 'slow', '-crf', '16', '-pix_fmt', 'yuv420p', '-r', String(meta.fps),
     '-c:a', 'aac', '-b:a', '256k', '-movflags', '+faststart', '-shortest', OUT,

@@ -82,7 +82,7 @@
       document.body.append(marker);
     }
     const r = (frame % 64) * 4 + 2;
-    const g = Math.floor(frame / 64) * 4 + 2;
+    const g = (Math.floor(frame / 64) % 64) * 4 + 2; // метка по модулю 4096 — запаздывание всего на пару кадров
     marker.style.background = `rgb(${r},${g},170)`;
   }
 

@@ -1,27 +1,34 @@
-// Промо-ролик KeyShow (~20 с, 1920×1080). Всё — функции от времени t, синхронизированные с битом трека.
-// Трек: «Uplifting Bass» (Lily J, Mixkit), 134 BPM, отрезок с 10,761 с — дроп приходится на 8-ю долю.
+// Промо-ролик KeyShow (~24,5 с, 1920×1080). Всё — функции от времени t, синхронизированные с битом трека.
+// Трек: promo/music/keyshow-suno.mp3 — 128 BPM, первая доля 0,406 с, дроп на 16-й доле (7,906 с),
+// удар-переход на 31-й доле, финальный удар 22,22 с.
+// Сцены: 3D-клавиатура (набор KEYSHO) → моушен (слово, сочетания, брейк, клик на дропе) → редактор →
+// стили → языки → 3D-иконка.
 import * as THREE from 'three';
 import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
 import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+import { BokehPass } from 'three/addons/postprocessing/BokehPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 
 const W = 1920;
 const H = 1080;
-const BPM = 134;
-const B = 60 / BPM;              // одна доля, ~0,448 с
-const at = (beat) => beat * B;
-const DURATION = 20;
-const DROP = at(8);
+const BPM = 128;
+const B = 60 / BPM;                  // доля, 0,469 с
+const FIRST = 0.406;                 // первая доля трека
+const T = (n) => FIRST + n * B;      // время n-й доли
+const DROP = T(16);
+const FINAL = 22.22;
+const DURATION = 24.5;
 
 const SHOT = {
-  intro: [0, at(12)],
-  app: [at(12), at(28)],
-  styles: [at(28), at(32)],
-  langs: [at(32), at(40)],
-  end: [at(40), DURATION + 1],
+  intro: [0, T(6)],
+  motion: [T(6), T(20)],
+  app: [T(20), T(31)],
+  styles: [T(31), T(36)],
+  langs: [T(36), T(44)],
+  end: [T(44), DURATION + 1],
 };
 const inShot = (name, t) => t >= SHOT[name][0] && t < SHOT[name][1];
 
@@ -29,9 +36,12 @@ const inShot = (name, t) => t >= SHOT[name][0] && t < SHOT[name][1];
 const clamp01 = (v) => Math.max(0, Math.min(1, v));
 const lerp = (a, b, p) => a + (b - a) * p;
 const easeInOut = (p) => (p < 0.5 ? 4 * p * p * p : 1 - Math.pow(-2 * p + 2, 3) / 2);
+const easeOutCubic = (p) => 1 - Math.pow(1 - p, 3);
+const easeInCubic = (p) => p * p * p;
 const easeOutExpo = (p) => (p >= 1 ? 1 : 1 - Math.pow(2, -10 * p));
 const easeInExpo = (p) => (p <= 0 ? 0 : Math.pow(2, 10 * p - 10));
 const decay = (tau, k) => (tau < 0 ? 0 : Math.exp(-k * tau));
+const window01 = (t, a, b) => clamp01((t - a) / (b - a));
 function spring(tau, response = 0.5, damping = 0.7) {
   if (tau <= 0) return 0;
   const w = (2 * Math.PI) / response;
@@ -49,86 +59,78 @@ function rng(seed) {
     return ((x ^ (x >>> 14)) >>> 0) / 4294967296;
   };
 }
-// Быстрое нажатие: вниз за 50 мс, затем плавно вверх.
-const pressCurve = (tau) => (tau < 0 ? 0 : tau < 0.05 ? tau / 0.05 : Math.exp(-(tau - 0.05) * 9));
+// Нажатие: вниз за 40 мс, плавно вверх.
+const pressCurve = (tau) => (tau < 0 ? 0 : tau < 0.04 ? tau / 0.04 : Math.exp(-(tau - 0.04) * 10));
+// Удар: быстрая атака, медленный спад.
+const punch = (tau, k = 6) => (tau < 0 ? 0 : Math.exp(-k * tau) * (1 - Math.exp(-50 * tau)));
 
 const $ = (id) => document.getElementById(id);
 
-// ---------------------------------------------------------------- 3D: сцена
+// ---------------------------------------------------------------- 3D: рендер
 const renderer = new THREE.WebGLRenderer({ canvas: $('gl'), antialias: true, preserveDrawingBuffer: true });
 renderer.setPixelRatio(1);
 renderer.setSize(W, H, false);
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
-renderer.toneMappingExposure = 1.05;
+renderer.toneMappingExposure = 1.0;
 renderer.outputColorSpace = THREE.SRGBColorSpace;
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
 const scene = new THREE.Scene();
-scene.background = new THREE.Color(0x05060b);
-scene.fog = new THREE.FogExp2(0x05060b, 0.045);
+scene.background = new THREE.Color(0x040509);
+scene.fog = new THREE.FogExp2(0x040509, 0.035);
 const pmrem = new THREE.PMREMGenerator(renderer);
 scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
-scene.environmentIntensity = 0.38;
+scene.environmentIntensity = 0.32;
 
-const camera = new THREE.PerspectiveCamera(38, W / H, 0.1, 200);
+const camera = new THREE.PerspectiveCamera(36, W / H, 0.05, 200);
 const composer = new EffectComposer(renderer);
 composer.addPass(new RenderPass(scene, camera));
+const bokeh = new BokehPass(scene, camera, { focus: 5, aperture: 0.004, maxblur: 0.012 });
+composer.addPass(bokeh);
 const bloom = new UnrealBloomPass(new THREE.Vector2(W, H), 0.7, 0.55, 0.82);
 composer.addPass(bloom);
 composer.addPass(new OutputPass());
 
-scene.add(new THREE.AmbientLight(0xffffff, 0.12));
-const key = new THREE.DirectionalLight(0xffffff, 1.5);
-key.position.set(4, 8, 6);
-scene.add(key);
-const rimBlue = new THREE.PointLight(0x2a7bff, 40, 24, 2);
-rimBlue.position.set(-5, 2.2, 3);
+const ambient = new THREE.AmbientLight(0xffffff, 0.08);
+scene.add(ambient);
+const spot = new THREE.SpotLight(0xffffff, 520, 40, 0.55, 0.85, 2);
+spot.position.set(-6, 11, 7);
+spot.target.position.set(0, 0, 0);
+spot.castShadow = true;
+spot.shadow.mapSize.set(2048, 2048);
+spot.shadow.bias = -0.0004;
+spot.shadow.radius = 4;
+scene.add(spot, spot.target);
+const rimBlue = new THREE.PointLight(0x2a7bff, 60, 26, 2);
+rimBlue.position.set(-4, 2.5, -5);
 scene.add(rimBlue);
-const rimViolet = new THREE.PointLight(0x8a4dff, 30, 24, 2);
-rimViolet.position.set(5, 1.6, -2.5);
+const rimViolet = new THREE.PointLight(0x8a4dff, 34, 26, 2);
+rimViolet.position.set(6.5, 2.2, -5);
 scene.add(rimViolet);
 
-// Пол с едва заметной сеткой
-function gridTexture() {
-  const c = document.createElement('canvas');
-  c.width = c.height = 256;
-  const g = c.getContext('2d');
-  g.fillStyle = '#000';
-  g.fillRect(0, 0, 256, 256);
-  g.strokeStyle = 'rgba(90,150,255,0.6)';
-  g.lineWidth = 2;
-  g.strokeRect(1, 1, 254, 254);
-  const tex = new THREE.CanvasTexture(c);
-  tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
-  tex.repeat.set(48, 48);
-  return tex;
-}
-const floor = new THREE.Mesh(
-  new THREE.PlaneGeometry(96, 96),
-  new THREE.MeshStandardMaterial({ color: 0x07080d, roughness: 0.38, metalness: 0.7, emissive: 0xffffff, emissiveMap: gridTexture(), emissiveIntensity: 0.22 }),
-);
-floor.rotation.x = -Math.PI / 2;
-floor.position.y = -0.235;
-scene.add(floor);
-
-// Клавиши
+// ---------------------------------------------------------------- клавиши-легенды
 const legendCache = new Map();
-function legendTexture(text, color) {
-  const id = text + color;
+function legendTexture(text, { color = '#ffffff', size = 330, w = 512, h = 512 } = {}) {
+  const id = [text, color, size, w, h].join('|');
   if (legendCache.has(id)) return legendCache.get(id);
   const c = document.createElement('canvas');
-  c.width = c.height = 512;
+  c.width = w;
+  c.height = h;
   const g = c.getContext('2d');
   g.fillStyle = color;
-  g.font = `700 ${text.length > 1 ? 180 : 330}px "Segoe UI Variable Display", "Segoe UI", sans-serif`;
+  g.font = `600 ${size}px "Segoe UI Variable Display", "Segoe UI", "Segoe UI Symbol", sans-serif`;
   g.textAlign = 'center';
   g.textBaseline = 'middle';
-  g.fillText(text, 256, 270);
+  g.fillText(text, w / 2, h / 2 + size * 0.06);
   const tex = new THREE.CanvasTexture(c);
   tex.colorSpace = THREE.SRGBColorSpace;
   tex.anisotropy = 8;
   legendCache.set(id, tex);
   return tex;
 }
+
+// Клавиша для поля «языков» (синяя, глянцевая)
 const capGeo = new RoundedBoxGeometry(1, 0.44, 1, 6, 0.11);
 const legendGeo = new THREE.PlaneGeometry(0.88, 0.88);
 function makeKey(letter, { color = 0x0866e8, legend = '#ffffff', w = 1, d = 1 } = {}) {
@@ -140,7 +142,7 @@ function makeKey(letter, { color = 0x0866e8, legend = '#ffffff', w = 1, d = 1 } 
   const body = new THREE.Mesh(w === 1 && d === 1 ? capGeo : new RoundedBoxGeometry(w, 0.44, d, 6, 0.11), mat);
   g.add(body);
   if (letter) {
-    const lm = new THREE.MeshBasicMaterial({ map: legendTexture(letter, legend), transparent: true, toneMapped: false, depthWrite: false });
+    const lm = new THREE.MeshBasicMaterial({ map: legendTexture(letter, { color: legend, size: letter.length > 1 ? 180 : 330 }), transparent: true, toneMapped: false, depthWrite: false });
     const lg = new THREE.Mesh(legendGeo, lm);
     lg.rotation.x = -Math.PI / 2;
     lg.position.y = 0.224;
@@ -150,155 +152,168 @@ function makeKey(letter, { color = 0x0866e8, legend = '#ffffff', w = 1, d = 1 } 
   return g;
 }
 
-// ---------- Шот 1: интро «KEYSHOW»
-const introGroup = new THREE.Group();
-scene.add(introGroup);
-const WORD = 'KEYSHOW';
-const keys = WORD.split('').map((ch, i) => {
-  const k = makeKey(ch);
-  k.position.x = (i - 3) * 1.22;
-  introGroup.add(k);
-  return k;
-});
-const landT = (i) => at(i + 1);
-const FALL = 0.36;
+// ================================================================ ШОТ 1: КЛАВИАТУРА
+const kbGroup = new THREE.Group();
+scene.add(kbGroup);
 
-// Кольца-волны на полу
-const ringGeo = new THREE.RingGeometry(0.9, 1, 128);
-const rings = [];
-function addRing(t0, x, z, max, dur, color = 0x5aa8ff) {
-  const m = new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false, toneMapped: false, side: THREE.DoubleSide });
-  const r = new THREE.Mesh(ringGeo, m);
-  r.rotation.x = -Math.PI / 2;
-  r.position.set(x, -0.225, z);
-  introGroup.add(r);
-  rings.push({ r, t0, max, dur });
-}
-keys.forEach((k, i) => addRing(landT(i), k.position.x, 0, 2.2, 0.8));
-addRing(DROP, 0, 0, 16, 1.5, 0x7fbaff);
-addRing(DROP + 0.08, 0, 0, 10, 1.2, 0x9a6bff);
-
-// Частицы дропа
-const PCOUNT = 360;
-const parts = new THREE.InstancedMesh(
-  new THREE.BoxGeometry(0.07, 0.07, 0.07),
-  new THREE.MeshBasicMaterial({ color: 0xa8d4ff, toneMapped: false }),
-  PCOUNT,
+// Стол и корпус
+const table = new THREE.Mesh(
+  new THREE.PlaneGeometry(80, 80),
+  new THREE.MeshStandardMaterial({ color: 0x0a0b10, roughness: 0.55, metalness: 0.35 }),
 );
-introGroup.add(parts);
-const pr = rng(7);
-const pData = Array.from({ length: PCOUNT }, () => ({
-  x: (Math.floor(pr() * 7) - 3) * 1.22 + (pr() - 0.5) * 0.8,
-  z: (pr() - 0.5) * 0.8,
-  vx: (pr() - 0.5) * 8,
-  vy: 2.5 + pr() * 6.5,
-  vz: (pr() - 0.5) * 6 + 1.4,
-  s: 0.5 + pr() * 1.3,
-  life: 0.9 + pr() * 1.1,
-  rx: pr() * 9,
-  ry: pr() * 9,
-}));
+table.rotation.x = -Math.PI / 2;
+table.position.y = -0.52;
+table.receiveShadow = true;
+kbGroup.add(table);
+const caseMesh = new THREE.Mesh(
+  new RoundedBoxGeometry(16.1, 0.52, 6.1, 6, 0.26),
+  new THREE.MeshPhysicalMaterial({ color: 0x2a2d34, metalness: 0.88, roughness: 0.34, clearcoat: 0.25, clearcoatRoughness: 0.3 }),
+);
+caseMesh.position.y = -0.26;
+caseMesh.castShadow = true;
+caseMesh.receiveShadow = true;
+kbGroup.add(caseMesh);
+// Тёмная «внутренность» под клавишами
+const well = new THREE.Mesh(
+  new RoundedBoxGeometry(15.2, 0.02, 5.2, 2, 0.1),
+  new THREE.MeshStandardMaterial({ color: 0x06070a, roughness: 0.9 }),
+);
+well.position.y = 0.005;
+kbGroup.add(well);
+
+const ROWS = [
+  [['`', 1], ['1', 1], ['2', 1], ['3', 1], ['4', 1], ['5', 1], ['6', 1], ['7', 1], ['8', 1], ['9', 1], ['0', 1], ['-', 1], ['=', 1], ['⌫', 2]],
+  [['Tab', 1.5], ['Q', 1], ['W', 1], ['E', 1], ['R', 1], ['T', 1], ['Y', 1], ['U', 1], ['I', 1], ['O', 1], ['P', 1], ['[', 1], [']', 1], ['\\', 1.5]],
+  [['Caps', 1.75], ['A', 1], ['S', 1], ['D', 1], ['F', 1], ['G', 1], ['H', 1], ['J', 1], ['K', 1], ['L', 1], [';', 1], ["'", 1], ['Enter', 2.25]],
+  [['Shift', 2.25], ['Z', 1], ['X', 1], ['C', 1], ['V', 1], ['B', 1], ['N', 1], ['M', 1], [',', 1], ['.', 1], ['/', 1], ['Shift', 2.75]],
+  [['Ctrl', 1.25], ['Win', 1.25], ['Alt', 1.25], ['', 6.25], ['Alt', 1.25], ['Win', 1.25], ['Menu', 1.25], ['Ctrl', 1.25]],
+];
+const kbCapGeo = new Map();
+const kbGlowGeo = new Map();
+const geoFor = (cache, w, make) => { if (!cache.has(w)) cache.set(w, make(w)); return cache.get(w); };
+const GLOW = new THREE.Color(0x1a7dff);
+const kbKeys = [];
+const byLetter = {};
+ROWS.forEach((row, r) => {
+  let x = -7.5;
+  const z = r - 2;
+  for (const [label, w] of row) {
+    const cx = x + w / 2;
+    x += w;
+    const pivot = new THREE.Group();
+    pivot.position.set(cx, 0, z);
+    kbGroup.add(pivot);
+    const mat = new THREE.MeshPhysicalMaterial({
+      color: 0x16181e, roughness: 0.5, metalness: 0.05, clearcoat: 0.35, clearcoatRoughness: 0.4,
+      emissive: GLOW.clone(), emissiveIntensity: 0,
+    });
+    const cap = new THREE.Mesh(geoFor(kbCapGeo, w, (ww) => new RoundedBoxGeometry(ww - 0.12, 0.34, 0.88, 4, 0.09)), mat);
+    cap.position.y = 0.21;
+    cap.castShadow = true;
+    cap.receiveShadow = true;
+    pivot.add(cap);
+    let legendMat = null;
+    if (label) {
+      const single = label.length === 1;
+      const lw = single ? 0.62 : Math.min(w - 0.3, 1.5);
+      const lh = single ? 0.62 : 0.4;
+      legendMat = new THREE.MeshBasicMaterial({
+        map: legendTexture(label, single ? { size: 300 } : { size: 150, w: 512, h: Math.round(512 * (lh / lw)) }),
+        transparent: true, toneMapped: false, depthWrite: false, color: new THREE.Color(0.5, 0.53, 0.6),
+      });
+      const legend = new THREE.Mesh(new THREE.PlaneGeometry(lw, lh), legendMat);
+      legend.rotation.x = -Math.PI / 2;
+      legend.position.y = 0.382;
+      pivot.add(legend);
+    }
+    // Подсветка снизу: светится в щелях между клавишами и в пустом гнезде
+    const glowMat = new THREE.MeshBasicMaterial({ color: new THREE.Color(0, 0, 0), toneMapped: false });
+    const glow = new THREE.Mesh(geoFor(kbGlowGeo, w, (ww) => new RoundedBoxGeometry(ww - 0.04, 0.03, 0.96, 2, 0.08)), glowMat);
+    glow.position.set(cx, 0.02, z);
+    kbGroup.add(glow);
+    const k = { label, w, x: cx, z, pivot, mat, legendMat, glowMat, dist: Math.hypot(cx, z * 1.6) };
+    kbKeys.push(k);
+    if (/^[A-Z]$/.test(label)) byLetter[label] = k;
+  }
+});
+
+// Слово KEYSHOW набирается по клавише на долю; «W» нажимается уже в моушене (склейка на T(6))
+const WORD = 'KEYSHOW';
+const wordKeys = WORD.split('').slice(0, 6).map((ch, i) => Object.assign(byLetter[ch], { typedAt: T(i) }));
 const dummy = new THREE.Object3D();
 
-function pumpDepth(t, i) {
-  // Дроп: нажимаются все клавиши; дальше — «качаем» по долям через одну.
-  let d = 0.18 * pressCurve(t - DROP);
-  let g = 2.4 * decay(t - DROP, 3.5);
-  for (const b of [9, 10, 11]) {
-    if ((i + b) % 2 === 0) {
-      d += 0.1 * pressCurve(t - at(b));
-      g += 0.9 * decay(t - at(b), 5);
+function updateKeyboard(t) {
+  spot.intensity = 520;
+  rimBlue.intensity = 36;
+  rimViolet.intensity = 20;
+  for (const k of kbKeys) {
+    let g = 0;
+    let press = 0;
+    let legend = 0.5;
+    let emissive = 0;
+    if (k.typedAt !== undefined) {
+      const tau = t - k.typedAt;
+      press = 0.12 * pressCurve(tau);
+      if (tau >= 0) {
+        g = 3.2 * decay(tau, 5) + 1.1;
+        legend = 2.4 + 3 * decay(tau, 6);
+        emissive = 0.12 + 0.7 * decay(tau, 5);
+      }
     }
+    k.glowMat.color.copy(GLOW).multiplyScalar(g);
+    k.mat.emissiveIntensity = emissive;
+    if (k.legendMat) {
+      const c = k.typedAt !== undefined && t >= k.typedAt ? [0.75, 0.88, 1] : [1, 1, 1];
+      k.legendMat.color.setRGB(c[0] * legend, c[1] * legend, c[2] * legend);
+    }
+    k.pivot.position.set(k.x, -press, k.z);
   }
-  return { d, g };
 }
 
-function updateIntro(t) {
-  keys.forEach((k, i) => {
-    const tau = t - landT(i);
-    let y = 6;
-    let rx = 0;
-    let rz = 0;
-    let sy = 1;
-    let sxz = 1;
-    k.visible = tau >= -FALL;
-    if (tau < 0) {
-      const p = 1 + tau / FALL;
-      y = 5.5 * (1 - p * p);
-      rx = (1 - p) * 1.3;
-      rz = (1 - p) * (i % 2 ? 0.5 : -0.5);
-    } else {
-      y = 0.2 * Math.exp(-7 * tau) * Math.abs(Math.sin(13 * tau));
-      const sq = Math.exp(-13 * tau);
-      sy = 1 - 0.2 * sq;
-      sxz = 1 + 0.08 * sq;
-    }
-    const { d, g } = pumpDepth(t, i);
-    k.position.y = y - d;
-    k.rotation.set(rx, 0, rz);
-    k.scale.set(sxz, sy, sxz);
-    k.userData.mat.emissiveIntensity = (tau >= 0 ? 1.3 * decay(tau, 5) : 0) + g * 0.6 + 0.06 * clamp01((t - at(6)) / (DROP - at(6)));
-  });
-  for (const { r, t0, max, dur } of rings) {
-    const p = (t - t0) / dur;
-    r.visible = p >= 0 && p < 1;
-    if (!r.visible) continue;
-    const s = lerp(0.4, max, easeOutExpo(p));
-    r.scale.set(s, s, s);
-    r.material.opacity = 0.95 * (1 - p) * (1 - p);
-  }
-  const tau = t - DROP;
-  pData.forEach((q, i) => {
-    if (tau < 0 || tau > q.life) {
-      dummy.scale.setScalar(0);
-    } else {
-      dummy.position.set(q.x + q.vx * tau, 0.2 + q.vy * tau - 4.9 * tau * tau, q.z + q.vz * tau);
-      dummy.rotation.set(q.rx * tau, q.ry * tau, 0);
-      dummy.scale.setScalar(q.s * (1 - tau / q.life));
-    }
-    dummy.updateMatrix();
-    parts.setMatrixAt(i, dummy.matrix);
-  });
-  parts.instanceMatrix.needsUpdate = true;
+// Фокус переводится на только что нажатую клавишу за ~0,18 с (считается от t, без состояния)
+const keyPoint = (k) => new THREE.Vector3(k.x, 0.3, k.z);
+function typingFocus(t) {
+  let j = 0;
+  for (let n = 0; n < wordKeys.length; n++) if (t >= wordKeys[n].typedAt - 0.06) j = n;
+  const cur = keyPoint(wordKeys[j]);
+  if (j === 0) return cur;
+  const p = easeInOut(clamp01((t - (wordKeys[j].typedAt - 0.06)) / 0.18));
+  return keyPoint(wordKeys[j - 1]).lerp(cur, p);
 }
-
-const tmpA = new THREE.Vector3();
-const tmpB = new THREE.Vector3();
+// Камера вступления: два макро-плана со склейкой на четвёртой доле
 function introCamera(t) {
-  const look = new THREE.Vector3(0, 0.1, 0);
   const pos = new THREE.Vector3();
-  const orbitPos = (p) => {
-    const ang = lerp(0, 0.34, p);
-    const r = lerp(8.2, 6.4, easeInOut(p));
-    return new THREE.Vector3(Math.sin(ang) * r, lerp(2.3, 3.5, p), Math.cos(ang) * r);
-  };
-  if (t < DROP) {
-    const p = easeInOut(clamp01(t / DROP));
-    pos.set(lerp(-5.8, 0, p), lerp(0.85, 2.3, p), lerp(5.4, 8.2, p));
-    look.set(lerp(-1.8, 0, p), 0.1, 0);
-  } else if (t < at(11.5)) {
-    pos.copy(orbitPos(clamp01((t - DROP) / (at(11.5) - DROP))));
+  const look = new THREE.Vector3();
+  let fov;
+  let aperture;
+  if (t < T(4)) {
+    // План 1: проезд над клавишами спереди, фокус прыгает на каждую нажатую
+    const p = clamp01(t / T(4));
+    pos.set(lerp(-3.0, -1.4, p), lerp(2.5, 2.3, p), lerp(4.6, 4.2, p));
+    look.set(lerp(-1.6, -0.4, p), 0, -0.7);
+    fov = 38;
+    aperture = 0.0075;
   } else {
-    // Влетаем в клавишу «K»
-    const p = easeInExpo(clamp01((t - at(11.5)) / (at(12) - at(11.5))));
-    tmpA.copy(orbitPos(1));
-    tmpB.set(keys[0].position.x, 0.9, 0.35);
-    pos.lerpVectors(tmpA, tmpB, p);
-    look.set(lerp(0, keys[0].position.x, p), lerp(0.1, 0.22, p), 0);
+    // План 2: склейка — высокий ракурс сбоку, облёт с наездом
+    const p = easeInOut(clamp01((t - T(4)) / (T(6) - T(4))));
+    const ang = lerp(0.95, 0.72, p);
+    const r = lerp(7.2, 6.4, p);
+    pos.set(Math.sin(ang) * r - 0.6, lerp(5.2, 4.8, p), Math.cos(ang) * r);
+    look.set(-0.8, 0, -0.3);
+    fov = 34;
+    aperture = 0.004;
   }
-  // Встряска на дропе
-  const k = decay(t - DROP, 5.5);
-  pos.x += 0.14 * k * Math.sin((t - DROP) * 57);
-  pos.y += 0.1 * k * Math.sin((t - DROP) * 43 + 1);
   camera.position.copy(pos);
   camera.lookAt(look);
-  const punch = t >= DROP ? Math.exp(-5 * (t - DROP)) * (1 - Math.exp(-45 * (t - DROP))) : 0;
-  camera.fov = 38 - 6 * punch;
+  camera.fov = fov;
   camera.updateProjectionMatrix();
-  bloom.strength = 0.65 + 2.1 * decay(t - DROP, 3.2) + 0.35 * clamp01((t - at(6)) / (DROP - at(6)));
+  bokeh.uniforms.focus.value = camera.position.distanceTo(typingFocus(t));
+  bokeh.uniforms.aperture.value = aperture;
+  bloom.strength = 0.55;
+  bloom.radius = 0.42;
 }
 
-// ---------- Шот 4: поле летящих клавиш (фон для языков)
+// ================================================================ ШОТ 4: поле летящих клавиш (языки)
 const fieldGroup = new THREE.Group();
 scene.add(fieldGroup);
 const fr = rng(42);
@@ -308,16 +323,8 @@ const field = Array.from({ length: 54 }, (_, i) => {
   const wide = letter.length > 1;
   const color = [0x0a84ff, 0x0a84ff, 0x0a84ff, 0x5e5ce6, 0x1c1c1e][Math.floor(fr() * 5)];
   const k = makeKey(letter, { color, w: wide ? 1.7 : 1 });
-  const data = {
-    k,
-    x: (fr() - 0.5) * 22,
-    y: (fr() - 0.5) * 11,
-    z0: -42 + fr() * 46,
-    speed: 7 + fr() * 6,
-    rx: fr() * 6, ry: fr() * 6, vr: (fr() - 0.5) * 1.6,
-  };
   fieldGroup.add(k);
-  return data;
+  return { k, x: (fr() - 0.5) * 22, y: (fr() - 0.5) * 11, z0: -42 + fr() * 46, speed: 7 + fr() * 6, rx: fr() * 6, ry: fr() * 6, vr: (fr() - 0.5) * 1.6 };
 });
 function updateField(t) {
   const tau = t - SHOT.langs[0];
@@ -328,9 +335,8 @@ function updateField(t) {
     f.k.rotation.set(f.rx + f.vr * tau, f.ry + f.vr * 0.7 * tau, 0.3 * f.vr);
     f.k.userData.mat.emissiveIntensity = 0.15;
   }
-  // Каждая половина доли — вспышка «на смене языка»
   const half = B / 2;
-  const since = (tau % half + half) % half;
+  const since = ((tau % half) + half) % half;
   bloom.strength = 0.9 + 0.8 * decay(since, 8);
   camera.position.set(Math.sin(tau * 0.6) * 0.6, Math.cos(tau * 0.5) * 0.3, 9);
   camera.lookAt(0, 0, -4);
@@ -338,7 +344,7 @@ function updateField(t) {
   camera.updateProjectionMatrix();
 }
 
-// ---------- Шот 5: 3D-иконка приложения
+// ================================================================ ШОТ 5: 3D-иконка приложения
 const iconGroup = new THREE.Group();
 scene.add(iconGroup);
 const iconBase = new THREE.Mesh(
@@ -351,54 +357,78 @@ iconKey.position.y = 0.42;
 iconKey.userData.mat.roughness = 0.5;
 iconKey.userData.mat.clearcoat = 0.4;
 iconGroup.add(iconKey);
-iconGroup.rotation.x = Math.PI / 2;
-const sparkle = new THREE.InstancedMesh(new THREE.OctahedronGeometry(0.04), new THREE.MeshBasicMaterial({ color: 0xbfe0ff, toneMapped: false }), 90);
+const sparkle = new THREE.InstancedMesh(new THREE.OctahedronGeometry(0.04), new THREE.MeshBasicMaterial({ color: 0xbfe0ff, toneMapped: false }), 110);
 scene.add(sparkle);
 const sr = rng(99);
-const sData = Array.from({ length: 90 }, () => ({ a: sr() * Math.PI * 2, r: 2.4 + sr() * 4.5, y: (sr() - 0.5) * 5, s: 0.6 + sr() * 1.6, sp: 0.2 + sr() * 0.5, ph: sr() * 6 }));
+const sData = Array.from({ length: 110 }, () => ({ a: sr() * Math.PI * 2, r: 2.4 + sr() * 4.5, y: (sr() - 0.5) * 5, s: 0.6 + sr() * 1.6, sp: 0.2 + sr() * 0.5, ph: sr() * 6 }));
+// Световые штрихи на подлёте иконки
+const streaks = new THREE.InstancedMesh(new THREE.BoxGeometry(0.03, 0.03, 1), new THREE.MeshBasicMaterial({ color: 0x8fc6ff, toneMapped: false }), 80);
+scene.add(streaks);
+const str = rng(5);
+const stData = Array.from({ length: 80 }, () => ({ x: (str() - 0.5) * 14, y: (str() - 0.5) * 8, z0: -40 + str() * 40, len: 1 + str() * 3 }));
 function updateEnd(t) {
-  const tau = t - SHOT.end[0];
-  const sp = spring(tau, 0.9, 0.72);
-  iconGroup.position.set(0, 1.35 + 0.08 * Math.sin(tau * 2.2), 0);
-  iconGroup.rotation.set(Math.PI / 2 + 0.12 * Math.sin(tau * 1.4) - 0.1, lerp(-2.6, 0, sp) + 0.08 * Math.sin(tau * 1.7), 0);
-  iconGroup.scale.setScalar(lerp(0.25, 1, sp));
-  iconBase.material.emissiveIntensity = 0.05 + 0.35 * decay(tau, 3);
+  const approach = window01(t, SHOT.end[0], FINAL);
+  const tau = t - FINAL;
+  const sp = spring(tau, 0.75, 0.6);
+  const zIn = lerp(-24, 0, easeInCubic(approach));
+  iconGroup.position.set(0, 1.35 + 0.08 * Math.sin(Math.max(0, tau) * 2.2), tau < 0 ? zIn : 0);
+  const spin = tau < 0 ? lerp(-3 * Math.PI, -0.5, easeOutCubic(approach)) : lerp(-0.5, 0, sp);
+  iconGroup.rotation.set(Math.PI / 2 + 0.1 * Math.sin(Math.max(0, tau) * 1.4) - 0.1, spin + 0.06 * Math.sin(Math.max(0, tau) * 1.7), 0);
+  iconGroup.scale.setScalar(tau < 0 ? lerp(0.6, 1.1, approach) : 1 + 0.1 * (1 - sp));
+  iconBase.material.emissiveIntensity = 0.05 + 0.5 * punch(tau, 3);
   sData.forEach((q, i) => {
-    const a = q.a + tau * q.sp;
+    const a = q.a + Math.max(0, tau) * q.sp;
     dummy.position.set(Math.cos(a) * q.r, q.y + 1.2, Math.sin(a) * q.r - 2);
     dummy.rotation.set(tau * 2 + q.ph, tau * 3, 0);
-    dummy.scale.setScalar(q.s * clamp01(tau / 0.5) * (0.6 + 0.4 * Math.sin(tau * 5 + q.ph)));
+    dummy.scale.setScalar(tau < 0 ? 0 : q.s * clamp01(tau / 0.4) * (0.6 + 0.4 * Math.sin(tau * 5 + q.ph)));
     dummy.updateMatrix();
     sparkle.setMatrixAt(i, dummy.matrix);
   });
   sparkle.instanceMatrix.needsUpdate = true;
+  // Штрихи летят навстречу, пока иконка подлетает
+  const streakA = tau < 0 ? 1 : decay(tau, 6);
+  stData.forEach((q, i) => {
+    let z = q.z0 + 34 * (t - SHOT.end[0]);
+    z = ((z + 40) % 44) - 40;
+    dummy.position.set(q.x, q.y + 1, z);
+    dummy.rotation.set(0, 0, 0);
+    dummy.scale.set(1, 1, q.len * 3 * streakA);
+    dummy.updateMatrix();
+    streaks.setMatrixAt(i, dummy.matrix);
+  });
+  streaks.instanceMatrix.needsUpdate = true;
   camera.position.set(0, 0.6, 10.5);
   camera.lookAt(0, 0.4, 0);
-  camera.fov = 38;
+  camera.fov = 38 - 3 * punch(tau, 4);
   camera.updateProjectionMatrix();
-  bloom.strength = 0.35 + 0.7 * decay(tau, 3);
-  bloom.threshold = 0.92;
+  bloom.strength = 0.4 + 1.1 * punch(tau, 3.5) + 0.3 * (tau < 0 ? approach : 0);
+  bloom.threshold = 0.9;
 }
 
 function render3D(t) {
   const intro = inShot('intro', t);
   const langs = inShot('langs', t);
   const end = inShot('end', t);
-  introGroup.visible = intro;
-  floor.visible = intro;
+  kbGroup.visible = intro;
   fieldGroup.visible = langs;
   iconGroup.visible = end;
   sparkle.visible = end;
-  scene.fog.density = langs ? 0.035 : end ? 0.02 : 0.045;
+  streaks.visible = end;
+  spot.visible = intro;
+  bokeh.enabled = intro;
+  scene.fog.density = intro ? 0.03 : langs ? 0.035 : 0.02;
   bloom.threshold = 0.82;
-  renderer.toneMappingExposure = end ? 0.92 : 1.05;
-  if (intro) { updateIntro(t); introCamera(t); }
+  bloom.radius = 0.55;
+  renderer.toneMappingExposure = end ? 0.92 : 1.0;
+  rimBlue.intensity = 60;
+  rimViolet.intensity = 34;
+  if (intro) { updateKeyboard(t); introCamera(t); }
   if (langs) updateField(t);
   if (end) updateEnd(t);
   composer.render();
 }
 
-// ---------------------------------------------------------------- 2D: настоящий движок KeyShow
+// ================================================================ 2D: настоящий движок KeyShow
 const BASE = {
   keyColor: '#0A84FF', textColor: 'auto', keyStyle: 'solid', opacity: 1, size: 1.55, radius: 12,
   shadow: true, labelMode: 'both', showPlus: true, backdrop: false,
@@ -411,10 +441,305 @@ const BASE = {
 const engine = new KeyShowEngine($('stage'), { root: $('ovRoot'), fx: $('fx') });
 engine.setSettings(BASE);
 
-const ev = (beat, e) => setTimeout(() => engine.input(e), Math.round(at(beat) * 1000));
+// Во вступлении: каждая нажатая 3D-клавиша появляется на экране — как в самом приложении
+const introEngine = new KeyShowEngine($('introStage'), { root: $('introOv') });
+introEngine.setSettings({ ...BASE, size: 2.5, marginY: 90, maxEntries: 1, lingerMs: 260, fadeMs: 220 });
+const atMs = (sec) => Math.round(sec * 1000);
+for (const k of wordKeys) {
+  setTimeout(() => introEngine.input({ t: 'down', kind: 'key', name: k.label }), atMs(k.typedAt));
+  setTimeout(() => introEngine.input({ t: 'up', kind: 'key', name: k.label }), atMs(k.typedAt + 0.14));
+}
+
+// ================================================================ МОУШЕН (доли 6–20)
+// Слово из клавиш → сочетания на нарастании → брейк «Ты нажимаешь — зритель видит» → клик на дропе
+const PLUS_SVG = '<svg viewBox="0 0 10 10"><path d="M5 1.6v6.8M1.6 5h6.8" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>';
+const CX = W / 2;
+const CY = H / 2;
+const KK = window.KeyShowKeys;
+
+// Оформление клавиш берём у настоящего движка: он выставляет CSS-переменные и классы стиля
+const looks = new Map();
+function lookOf(style, color, size) {
+  const id = [style, color, size].join('|');
+  if (!looks.has(id)) {
+    const root = document.createElement('div');
+    const stage = document.createElement('div');
+    root.append(stage);
+    new KeyShowEngine(stage, { root }).setSettings({ ...BASE, keyStyle: style, keyColor: color, size });
+    const cls = [...stage.classList].filter((c) => c.startsWith('ks-style-') || c === 'ks-shadow').join(' ');
+    looks.set(id, { vars: root.style.cssText, cls });
+  }
+  return looks.get(id);
+}
+function capHtml(name) {
+  const inf = KK.info(name);
+  const text = `<span class="ks-t">${inf.text}</span>`;
+  const html = inf.iconOnly ? inf.iconHtml : (inf.iconHtml || '') + text;
+  return `<div class="ks-cap${KK.modOf(name) ? ' mod' : ''}${inf.wide ? ' wide' : ''}">${html}</div>`;
+}
+// Сочетание как в оверлее. Элемент — точка, содержимое отцентрировано вокруг неё.
+function makeCombo(parent, names, { style = 'solid', color = '#0A84FF', size = 2.4, plus = true } = {}) {
+  const lk = lookOf(style, color, size);
+  const el = document.createElement('div');
+  el.className = 'm-item ks-root';
+  el.style.cssText = lk.vars;
+  const sep = plus ? `<div class="ks-plus">${PLUS_SVG}</div>` : '';
+  el.innerHTML = `<div class="m-center ${lk.cls}"><div class="ks-keys">${names.map(capHtml).join(sep)}</div></div>`;
+  parent.append(el);
+  return el;
+}
+const place = (el, x, y, s = 1, rot = 0) => {
+  el.style.transform = `translate(${x.toFixed(1)}px, ${y.toFixed(1)}px) scale(${s.toFixed(4)})${rot ? ` rotate(${rot.toFixed(2)}deg)` : ''}`;
+};
+const blurOf = (px) => (px > 0.05 ? `blur(${px.toFixed(2)}px)` : '');
+
+// ---------- 1. Слово KEYSHOW: «W» нажимается на склейке, по слову проходит волна нажатий
+const wordEl = makeCombo($('mWord'), WORD.split(''), { size: 3.6, plus: false });
+const wordCaps = [...wordEl.querySelectorAll('.ks-cap')];
+function updateWord(t) {
+  const on = t >= T(6) && t < T(8);
+  wordEl.style.display = on ? '' : 'none';
+  if (!on) return;
+  const tau = t - T(6);
+  const push = lerp(1.12, 1, easeOutCubic(clamp01(tau / 0.55))) + 0.035 * clamp01(tau / 0.9);
+  const zoom = easeInExpo(window01(t, T(7.65), T(8)));
+  place(wordEl, CX, CY, push * (1 + 7 * zoom));
+  wordEl.style.opacity = String(1 - clamp01((zoom - 0.55) / 0.45));
+  wordEl.style.filter = blurOf(10 * zoom);
+  wordCaps.forEach((c, i) => {
+    let s = 1;
+    let held = false;
+    if (i === 6) {
+      s = lerp(0.55, 1, spring(tau, 0.38, 0.58));
+      c.style.opacity = String(clamp01(tau / 0.06));
+      held = tau < 0.16;
+    }
+    const wave = t - (T(7) + i * 0.045);
+    if (wave >= 0 && wave < 0.14) held = true;
+    c.style.transform = `scale(${s.toFixed(4)})`;
+    c.classList.toggle('held', held);
+  });
+}
+
+// ---------- 2. Сочетания на нарастании: каждое влетает в центр, потом уходит на край
+const COMBOS = [
+  { at: 8, keys: ['Ctrl', 'C'], label: 'Копировать', style: 'solid', color: '#0A84FF', slot: [330, 210] },
+  { at: 9, keys: ['Ctrl', 'V'], label: 'Вставить', style: 'glass', color: '#5E5CE6', slot: [1600, 230] },
+  { at: 10, keys: ['Ctrl', 'Z'], label: 'Отменить', style: 'light', color: '#FF375F', slot: [320, 870] },
+  { at: 11, keys: ['Meta', 'Shift', 'S'], label: 'Скриншот', style: 'dark', color: '#FF9F0A', slot: [1590, 860] },
+  { at: 11.5, keys: ['Alt', 'Tab'], label: 'Другое окно', style: 'solid', color: '#BF5AF2', slot: [960, 150] },
+  { at: 12, keys: ['Ctrl', 'Shift', 'Escape'], label: 'Диспетчер задач', style: 'solid', color: '#30D158', slot: [960, 945] },
+  { at: 12.5, keys: ['Ctrl', 'Alt', 'Delete'], style: 'glass', color: '#0A84FF', slot: [260, 400] },
+  { at: 13, keys: ['Ctrl', 'S'], style: 'light', color: '#0A84FF', slot: [1680, 680] },
+  { at: 13.25, keys: ['Alt', 'F4'], style: 'dark', color: '#FF375F', slot: [640, 330] },
+  { at: 13.5, keys: ['Ctrl', 'Shift', 'N'], style: 'solid', color: '#FF9F0A', slot: [1290, 760] },
+  { at: 13.75, keys: ['Ctrl', 'Alt', 'Shift', 'K'], style: 'solid', color: '#0A84FF' },
+];
+for (const c of COMBOS) c.el = makeCombo($('mCombos'), c.keys, { style: c.style, color: c.color, size: 3.4 });
+function updateCombos(t) {
+  const implode = easeInExpo(window01(t, T(14) - 0.06, T(14) + 0.1));
+  let last = -1;
+  COMBOS.forEach((c, i) => { if (t >= T(c.at)) last = i; });
+  const kick = last >= 0 ? decay(t - T(COMBOS[last].at), 10) : 0;
+  COMBOS.forEach((c, i) => {
+    const tau = t - T(c.at);
+    const on = tau >= 0 && implode < 1;
+    c.el.style.display = on ? '' : 'none';
+    if (!on) return;
+    const next = COMBOS[i + 1] ? T(COMBOS[i + 1].at) : Infinity;
+    const out = easeOutExpo(clamp01((t - next) / 0.32));
+    let x = CX;
+    let y = CY;
+    let s = lerp(0.55, 1, spring(tau, 0.38, 0.58));
+    let op = clamp01(tau / 0.06);
+    if (c.slot) {
+      x = lerp(CX, c.slot[0], out) + 10 * out * Math.sin(t * 1.3 + i);
+      y = lerp(CY, c.slot[1], out) + 8 * out * Math.cos(t * 1.1 + i * 2);
+      s *= lerp(1, 0.45, out) * (1 + 0.07 * kick * out);
+      op *= lerp(1, 0.6, out);
+    }
+    x = lerp(x, CX, implode);
+    y = lerp(y, CY, implode);
+    s *= 1 - implode;
+    place(c.el, x, y, s);
+    c.el.style.opacity = (op * (1 - implode)).toFixed(3);
+    c.el.style.filter = blurOf(1.6 * out);
+    c.el.querySelectorAll('.ks-cap').forEach((cap) => cap.classList.toggle('held', tau < 0.16));
+  });
+  // Подпись под сочетанием, пока оно в центре
+  const lab = $('mLabel');
+  const cur = COMBOS[last];
+  const nextAt = COMBOS[last + 1] ? T(COMBOS[last + 1].at) : T(14);
+  if (cur && cur.label && t < nextAt) {
+    if (lab.textContent !== cur.label) lab.textContent = cur.label;
+    const p = easeOutExpo(clamp01((t - T(cur.at) - 0.05) / 0.25));
+    const q = clamp01((t - (nextAt - 0.07)) / 0.07);
+    lab.style.opacity = String(p * (1 - q));
+    lab.style.transform = `translateY(${(18 * (1 - p)).toFixed(1)}px)`;
+  } else {
+    lab.style.opacity = '0';
+  }
+}
+
+// ---------- 3. Брейк: слова по полудолям, в центр прилетает курсор
+const breakWords = [...$('mBreak').querySelectorAll('.m-w')];
+const tagWords = [...$('mTag').querySelectorAll('.m-w')];
+// Строка держится по центру уже появившихся слов и плавно съезжает, когда добавляется новое
+function centerLines(box, words, times, t) {
+  if (!box._lines) {
+    if (!box.offsetWidth) return;
+    box._lines = [...box.querySelectorAll('.m-line')].map((line) => {
+      const idx = words.map((w, i) => (w.parentElement === line ? i : -1)).filter((i) => i >= 0);
+      const L = (i) => words[i].offsetLeft;
+      const R = (i) => words[i].offsetLeft + words[i].offsetWidth;
+      const full = idx.length ? (L(idx[0]) + R(idx[idx.length - 1])) / 2 : 0;
+      return { line, idx, targets: idx.map((_, k) => full - (L(idx[0]) + R(idx[k])) / 2) };
+    });
+  }
+  for (const { line, idx, targets } of box._lines) {
+    if (idx.length < 2) continue;
+    let x = targets[0];
+    for (let k = 1; k < idx.length; k++) {
+      x = lerp(x, targets[k], easeOutExpo(clamp01((t - times[idx[k]]) / 0.3)));
+    }
+    line.style.transform = `translateX(${x.toFixed(1)}px)`;
+  }
+}
+function slam(el, since, from = 1.35) {
+  const p = easeOutExpo(clamp01(since / 0.2));
+  el.style.opacity = String(clamp01(since / 0.05));
+  el.style.transform = `scale(${(from - (from - 1) * p).toFixed(4)})`;
+  el.style.filter = blurOf(14 * (1 - p));
+}
+function updateBreak(t) {
+  const on = t >= T(14) && t < DROP + 0.3;
+  $('mBreak').style.display = on ? '' : 'none';
+  if (!on) return;
+  const times = [14, 14.5, 15, 15.5].map(T);
+  times.forEach((at, i) => slam(breakWords[i], t - at));
+  centerLines($('mBreak'), breakWords, times, t);
+  const s = 1 + 0.05 * window01(t, T(14), DROP) + 0.012 * decay(t - T(Math.floor((t - FIRST) / (B / 2)) / 2), 14);
+  $('mBreak').style.transform = `translateY(-50%) scale(${s.toFixed(4)})`;
+}
+const CLICK = { x: CX + 6, y: CY + 4 };
+function updateCursor(t) {
+  const el = $('mCursor');
+  const on = t >= T(15.55) && t < DROP + 0.5;
+  el.style.display = on ? '' : 'none';
+  if (!on) return;
+  const p = easeOutCubic(window01(t, T(15.55), DROP - 0.04));
+  const x = lerp(CX + 640, CLICK.x, p);
+  const y = lerp(CY + 470, CLICK.y, p);
+  const press = t >= DROP ? 1 - 0.18 * pressCurve(t - DROP) : 1;
+  const gone = easeInCubic(window01(t, DROP + 0.06, DROP + 0.22));
+  el.style.transform = `translate(${x.toFixed(1)}px, ${y.toFixed(1)}px) scale(${(press * (1 - gone)).toFixed(4)})`;
+}
+
+// ---------- 4. Дроп: волна от клика заливает экран синим, клавиши разлетаются, слоган
+const RING_COUNT = 5;
+const rings = Array.from({ length: RING_COUNT }, () => {
+  const r = document.createElement('div');
+  r.className = 'm-ring';
+  $('mRings').append(r);
+  return r;
+});
+// Импульсы: на каждом сочетании, на клике (две волны) и на долях после дропа
+const PULSES = [
+  ...COMBOS.map((c) => ({ at: T(c.at), max: 760, w: 3, color: '77,163,255', dur: 0.7 })),
+  { at: DROP, max: 1500, w: 14, color: '255,255,255', dur: 0.95 },
+  { at: DROP + 0.08, max: 1200, w: 6, color: '170,210,255', dur: 0.9 },
+  ...[17, 18, 19].map((b) => ({ at: T(b), max: 900, w: 4, color: '255,255,255', dur: 0.8 })),
+];
+function updateRings(t) {
+  const live = PULSES.filter((p) => t >= p.at && t < p.at + p.dur).slice(-RING_COUNT);
+  rings.forEach((el, i) => {
+    const p = live[i];
+    el.style.display = p ? '' : 'none';
+    if (!p) return;
+    const q = (t - p.at) / p.dur;
+    const r = lerp(24, p.max, easeOutExpo(q));
+    const w = Math.max(1.5, p.w * (1 - q));
+    el.style.left = `${(CLICK.x - r).toFixed(1)}px`;
+    el.style.top = `${(CLICK.y - r).toFixed(1)}px`;
+    el.style.width = el.style.height = `${(2 * r).toFixed(1)}px`;
+    el.style.borderWidth = `${w.toFixed(2)}px`;
+    el.style.borderColor = `rgba(${p.color},${(0.85 * Math.pow(1 - q, 1.5)).toFixed(3)})`;
+  });
+}
+function updateFlood(t) {
+  const el = $('mFlood');
+  const q = (t - DROP - 0.02) / 0.6;
+  el.style.display = q > 0 ? '' : 'none';
+  if (q <= 0) return;
+  const r = 1300 * easeOutExpo(clamp01(q));
+  el.style.left = `${(CLICK.x - r).toFixed(1)}px`;
+  el.style.top = `${(CLICK.y - r).toFixed(1)}px`;
+  el.style.width = el.style.height = `${(2 * r).toFixed(1)}px`;
+}
+const BURST_KEYS = ['Ctrl', 'Shift', 'Alt', 'Tab', 'Escape', 'Enter', 'Meta', 'A', 'S', 'D', 'F', 'Z', 'X', 'C',
+  'V', 'Q', '1', '2', 'F5', 'ArrowUp', 'ArrowLeft', 'Backspace', 'Delete', 'K', 'W', 'Space'];
+const br = rng(77);
+const burst = BURST_KEYS.map((name, i) => {
+  const style = i % 5 === 3 ? 'dark' : i % 7 === 5 ? 'glass' : 'light';
+  const el = makeCombo($('mBurst'), [name], { style, color: style === 'glass' ? '#FFFFFF' : '#0A84FF', size: 2.0, plus: false });
+  const a = (i / BURST_KEYS.length) * Math.PI * 2 + (br() - 0.5) * 0.22;
+  // Улетают за эллипс слогана, чтобы не перекрывать текст
+  const edge = 1 / Math.hypot(Math.cos(a) / 760, Math.sin(a) / 330);
+  return { el, a, d: edge * (1.02 + br() * 0.55), z: 0.65 + br() * 0.6, rot: (br() - 0.5) * 40, spin: (br() < 0.5 ? -1 : 1) * (90 + br() * 160), ph: br() * 6 };
+});
+function updateBurst(t) {
+  const tau = t - DROP;
+  const on = tau >= 0;
+  $('mBurst').style.display = on ? '' : 'none';
+  if (!on) return;
+  const beat = Math.max(...[17, 18, 19].map((b) => decay(t - T(b), 9) * (t >= T(b) ? 1 : 0)), 0);
+  for (const q of burst) {
+    const go = 1 - Math.exp(-5 * tau);
+    const x = CX + Math.cos(q.a) * q.d * go + 12 * Math.sin(t * 0.9 + q.ph);
+    const y = CY + Math.sin(q.a) * q.d * go + 10 * Math.cos(t * 0.8 + q.ph);
+    const s = q.z * lerp(0.3, 1, spring(tau, 0.45, 0.6)) * (1 + 0.08 * beat);
+    place(q.el, x, y, s, q.rot + q.spin * go + 5 * Math.sin(t * 1.1 + q.ph));
+    q.el.style.filter = blurOf(q.z < 0.8 ? 2.2 : 0);
+  }
+}
+function updateTag(t) {
+  const on = t >= T(16.5) - 0.05;
+  $('mTag').style.display = on ? '' : 'none';
+  if (!on) return;
+  const times = [16.5, 16.75, 17].map(T);
+  times.forEach((at, i) => slam(tagWords[i], t - at, 1.4));
+  centerLines($('mTag'), tagWords, times, t);
+  const beat = Math.max(...[17, 18, 19].map((b) => decay(t - T(b), 8) * (t >= T(b) ? 1 : 0)), 0);
+  $('mTag').style.transform = `translateY(-50%) scale(${(1 + 0.03 * beat).toFixed(4)})`;
+  $('mBar').style.transform = `scaleX(${easeOutExpo(window01(t, T(17.25), T(17.25) + 0.45)).toFixed(4)})`;
+}
+
+function updateMotion(t) {
+  // Фон: сетка точек медленно наезжает и поворачивается, на райзере ярче
+  const riser = window01(t, T(12), T(14));
+  const g = $('mGrid');
+  g.style.transform = `scale(${(1 + 0.14 * window01(t, T(6), T(16))).toFixed(4)}) rotate(${lerp(-3, 3, window01(t, T(6), T(16))).toFixed(3)}deg)`;
+  g.style.opacity = (t < T(8) ? 0.55 : t < T(14) ? 0.7 + 0.3 * riser : 0.3).toFixed(3);
+  $('mGlow').style.opacity = (t < T(8) ? 0.8 : t < T(14) ? 0.5 + 0.5 * riser : 0.25).toFixed(3);
+  updateWord(t);
+  updateCombos(t);
+  updateBreak(t);
+  updateFlood(t);
+  updateRings(t);
+  updateBurst(t);
+  updateTag(t);
+  updateCursor(t);
+  // «Камера»: дрожь на пике райзера и улёт в приложение в конце
+  const shake = riser * (t < T(14) ? 1 : 0) * 4;
+  const out = easeInExpo(window01(t, T(19.4), T(20)));
+  const cam = $('mCam');
+  cam.style.transform = `translate(${(shake * Math.sin(t * 91)).toFixed(2)}px, ${(shake * Math.cos(t * 77)).toFixed(2)}px) scale(${(1 + 2.6 * out).toFixed(4)})`;
+  cam.style.filter = blurOf(9 * out);
+}
+
+const ev = (beat, e) => setTimeout(() => engine.input(e), atMs(T(beat)));
 const key2 = (beat, t, name) => ev(beat, { t, kind: 'key', name });
 
-// Точки для мыши — по реальной разметке
 function centerOf(el, dx = 0, dy = 0) {
   const r = el.getBoundingClientRect();
   const o = $('ovRoot').getBoundingClientRect();
@@ -426,8 +751,6 @@ const P1 = centerOf($('card2'), -20, 10);
 const P2 = { x: P1.x + 230, y: P1.y - 170 };
 const P_SHAKE = centerOf($('artboard'), 0, -40);
 $('app').classList.remove('on');
-
-// Выделение кнопки на макете
 {
   const cta = $('cta');
   const box = document.createElement('div');
@@ -436,41 +759,39 @@ $('app').classList.remove('on');
   $('artboard').append(box);
 }
 
-// Сочетания на долях
-key2(12.25, 'down', 'Ctrl'); key2(12.75, 'down', 'C'); key2(13.0, 'up', 'C'); key2(13.25, 'up', 'Ctrl');
-key2(14.0, 'down', 'Ctrl');
-for (const b of [14.25, 14.75, 15.25]) { key2(b, 'down', 'V'); key2(b + 0.25, 'up', 'V'); }
-key2(15.75, 'up', 'Ctrl');
-key2(16.5, 'down', 'Ctrl'); key2(16.75, 'down', 'Alt'); key2(17.0, 'down', 'Shift'); key2(17.5, 'down', 'K');
-key2(19.5, 'up', 'K'); key2(19.6, 'up', 'Shift'); key2(19.7, 'up', 'Alt'); key2(19.8, 'up', 'Ctrl');
-key2(20.0, 'down', 'Space');
-ev(20.5, { t: 'down', kind: 'mouse', name: 1, ...P1 });
-ev(20.8, { t: 'drag', kind: 'mouse', name: 1 });
-ev(22.75, { t: 'up', kind: 'mouse', name: 1, ...P2 });
-key2(23.0, 'up', 'Space');
+// Сочетания на долях (сцена редактора: доли 20–31)
+key2(20.25, 'down', 'Ctrl'); key2(20.5, 'down', 'C'); key2(20.75, 'up', 'C'); key2(21.0, 'up', 'Ctrl');
+key2(21.5, 'down', 'Ctrl');
+for (const b of [21.75, 22.25, 22.75]) { key2(b, 'down', 'V'); key2(b + 0.25, 'up', 'V'); }
+key2(23.25, 'up', 'Ctrl');
+key2(23.75, 'down', 'Ctrl'); key2(23.9, 'down', 'Alt'); key2(24.05, 'down', 'Shift'); key2(24.25, 'down', 'K');
+key2(25.75, 'up', 'K'); key2(25.8, 'up', 'Shift'); key2(25.85, 'up', 'Alt'); key2(25.9, 'up', 'Ctrl');
+key2(26.0, 'down', 'Space');
+ev(26.25, { t: 'down', kind: 'mouse', name: 1, ...P1 });
+ev(26.5, { t: 'drag', kind: 'mouse', name: 1 });
+ev(27.75, { t: 'up', kind: 'mouse', name: 1, ...P2 });
+key2(28.0, 'up', 'Space');
 
-// Путь курсора
 function pointer(t) {
   const lerpP = (a, b, p) => ({ x: lerp(a.x, b.x, p), y: lerp(a.y, b.y, p) });
-  if (t < at(19.2)) return P_REST;
-  if (t < at(20.5)) return lerpP(P_REST, P1, easeInOut(clamp01((t - at(19.2)) / (at(20.5) - at(19.2)))));
-  if (t < at(22.6)) return lerpP(P1, P2, easeInOut(clamp01((t - at(20.8)) / (at(22.5) - at(20.8)))));
-  if (t < at(24)) return lerpP(P2, P_SHAKE, easeInOut(clamp01((t - at(23)) / (at(24) - at(23)))));
-  if (t < at(27)) {
-    const tau = t - at(24);
-    const amp = 190 * clamp01(tau / 0.15) * (1 - 0.3 * clamp01((tau - 1.0) / 0.4));
-    return { x: P_SHAKE.x + amp * Math.sin(tau * 2 * Math.PI * 3.1), y: P_SHAKE.y + 16 * Math.sin(tau * 2 * Math.PI * 2.3) };
+  if (t < T(25.2)) return P_REST;
+  if (t < T(26.25)) return lerpP(P_REST, P1, easeInOut(window01(t, T(25.2), T(26.25))));
+  if (t < T(27.7)) return lerpP(P1, P2, easeInOut(window01(t, T(26.5), T(27.6))));
+  if (t < T(28.4)) return lerpP(P2, P_SHAKE, easeInOut(window01(t, T(27.8), T(28.4))));
+  if (t < T(30.75)) {
+    const tau = t - T(28.4);
+    const amp = 190 * clamp01(tau / 0.12) * (1 - 0.3 * clamp01((tau - 0.8) / 0.3));
+    return { x: P_SHAKE.x + amp * Math.sin(tau * 2 * Math.PI * 3.2), y: P_SHAKE.y + 16 * Math.sin(tau * 2 * Math.PI * 2.3) };
   }
   return P_SHAKE;
 }
 
-// Камера «записи экрана»: въезд и толчки на нажатиях
-const PUNCHES = [12.75, 14.25, 14.75, 15.25, 17.5, 20.5, 24];
+const PUNCHES = [20.5, 21.75, 22.25, 22.75, 24.25, 26.25, 28.4];
 function updateApp(t) {
   const tau = t - SHOT.app[0];
   const enter = spring(tau, 0.55, 0.86);
   let s = lerp(1.22, 1, enter) + 0.05 * clamp01(tau / (SHOT.app[1] - SHOT.app[0]));
-  for (const b of PUNCHES) s += 0.022 * decay(t - at(b), 6) * (t >= at(b) ? 1 : 0);
+  for (const b of PUNCHES) s += 0.022 * decay(t - T(b), 6) * (t >= T(b) ? 1 : 0);
   const blur = 14 * (1 - clamp01(tau / 0.3));
   const inner = $('appInner');
   inner.style.transform = `scale(${s.toFixed(4)})`;
@@ -479,11 +800,10 @@ function updateApp(t) {
   const c = $('cursor');
   c.style.left = p.x + 'px';
   c.style.top = p.y + 'px';
-  // Пока виден увеличенный курсор, маленький прячем — так кадр чище
   c.style.opacity = engine.cursor.growLevel > 0.12 ? '0' : '1';
 }
 
-// ---------- Шот 3: стили и цвета
+// ---------- стили и цвета: по плитке на долю
 const tiles = [...document.querySelectorAll('.tile')];
 const tileEngines = tiles.map((tile) => {
   const root = document.createElement('div');
@@ -496,10 +816,10 @@ const tileEngines = tiles.map((tile) => {
   return e;
 });
 for (const name of ['Ctrl', 'Shift', 'S']) {
-  setTimeout(() => tileEngines.forEach((e) => e.input({ t: 'down', kind: 'key', name })), Math.round(at(26.5) * 1000));
+  setTimeout(() => tileEngines.forEach((e) => e.input({ t: 'down', kind: 'key', name })), atMs(T(28)));
 }
 function updateStyles(t) {
-  const idx = Math.min(3, Math.floor((t - SHOT.styles[0]) / B));
+  const idx = Math.min(tiles.length - 1, Math.floor((t - SHOT.styles[0]) / B));
   tiles.forEach((tile, i) => {
     tile.style.display = i === idx ? 'block' : 'none';
     if (i !== idx) return;
@@ -511,7 +831,7 @@ function updateStyles(t) {
   });
 }
 
-// ---------- Шот 4: языки
+// ---------- языки
 const LANG_ORDER = ['ru', 'en', 'be', 'kk', 'ky', 'tt', 'tg', 'uz', 'az', 'hy', 'ro', 'tk'];
 const L = window.KeyShowLocales;
 function updateLangs(t) {
@@ -543,24 +863,23 @@ function updateLangs(t) {
   sub.style.opacity = String(clamp01(since / 0.12));
 }
 
-// ---------- Шот 5: финальная плашка
+// ---------- финальная плашка
 function updateEndText(t) {
-  const items = [[$('endTitle'), 40.6], [$('endSub'), 41.2], [$('endPills'), 41.8]];
-  for (const [el, b] of items) {
-    const p = spring(t - at(b), 0.6, 0.82);
-    el.style.opacity = String(clamp01((t - at(b)) / 0.25));
+  const items = [[$('endTitle'), FINAL + 0.12], [$('endSub'), FINAL + 0.42], [$('endPills'), FINAL + 0.72]];
+  for (const [el, at] of items) {
+    const p = spring(t - at, 0.6, 0.82);
+    el.style.opacity = String(clamp01((t - at) / 0.25));
     el.style.transform = `translateY(${(36 * (1 - p)).toFixed(2)}px)`;
   }
 }
 
 // ---------------------------------------------------------------- подписи
 const CAPTIONS = [
-  { from: at(8.5), to: at(11.4), eyebrow: '', title: 'Каждое нажатие — на экране', hero: true },
-  { from: at(12.4), to: at(16.35), eyebrow: 'Горячие клавиши', title: 'Видно каждое сочетание' },
-  { from: at(16.5), to: at(19.9), eyebrow: 'Любой длины', title: '3, 4 и больше клавиш' },
-  { from: at(20.0), to: at(23.9), eyebrow: 'Мышь', title: 'Клики и перетаскивание' },
-  { from: at(24.0), to: at(27.9), eyebrow: 'Как на Mac', title: 'Потряси — курсор найдётся' },
-  { from: at(28.0), to: at(31.95), eyebrow: 'Стили и цвета', title: 'Под любой ролик' },
+  { from: T(20.3), to: T(23.6), eyebrow: 'Горячие клавиши', title: 'Любые сочетания' },
+  { from: T(23.75), to: T(25.9), eyebrow: 'Любой длины', title: '3, 4 и больше клавиш' },
+  { from: T(26.0), to: T(28.3), eyebrow: 'Мышь', title: 'Клики и перетаскивание' },
+  { from: T(28.4), to: T(30.95), eyebrow: 'Как на Mac', title: 'Потряси — курсор найдётся' },
+  { from: T(31.1), to: T(35.95), eyebrow: 'Стили и цвета', title: 'Под любой ролик' },
 ];
 let capIdx = -1;
 function updateCaption(t) {
@@ -592,12 +911,10 @@ function updateCaption(t) {
   }
   if (i < 0) return;
   const c = CAPTIONS[i];
-  const words = [...el.querySelectorAll('.w')];
-  words.forEach((w, n) => {
-    const pin = easeOutExpo(clamp01((t - c.from - n * 0.045) / 0.4));
-    const pout = clamp01((t - (c.to - 0.16)) / 0.16);
-    const y = (1 - pin) * 105 - pout * 60;
-    w.style.transform = `translateY(${y.toFixed(2)}%)`;
+  [...el.querySelectorAll('.w')].forEach((w, n) => {
+    const pin = easeOutExpo(clamp01((t - c.from - n * 0.04) / 0.35));
+    const pout = clamp01((t - (c.to - 0.14)) / 0.14);
+    w.style.transform = `translateY(${((1 - pin) * 105 - pout * 60).toFixed(2)}%)`;
     w.style.opacity = String(Math.min(pin * 1.4, 1 - pout));
   });
 }
@@ -607,15 +924,17 @@ function updateFlash(t) {
   const f = $('flash');
   let color = '#000';
   let a = 0;
-  if (t < 0.5) { a = 1 - clamp01(t / 0.5); color = '#000'; }
-  const dropA = 0.85 * decay(t - DROP, 9);
-  if (dropA > a) { a = dropA; color = '#fff'; }
-  if (t >= at(11.6) && t < SHOT.app[0] + 0.35) {
-    const p = t < SHOT.app[0] ? clamp01((t - at(11.6)) / (SHOT.app[0] - at(11.6))) : 1 - clamp01((t - SHOT.app[0]) / 0.35);
-    a = p; color = '#0A84FF';
+  if (t < 0.35) { a = 1 - clamp01(t / 0.35); color = '#000'; }
+  for (const [cut, k] of [[T(6), 0.5], [T(8), 0.35], [DROP, 0.45]]) {
+    const ca = k * decay(t - cut, 11);
+    if (ca > a) { a = ca; color = '#fff'; }
   }
-  for (const cut of [SHOT.styles[0], SHOT.langs[0], SHOT.end[0]]) {
-    const ca = 0.7 * decay(t - cut, 12);
+  if (t >= T(19.6) && t < SHOT.app[0] + 0.35) {
+    a = t < SHOT.app[0] ? window01(t, T(19.6), SHOT.app[0]) : 1 - clamp01((t - SHOT.app[0]) / 0.35);
+    color = '#0A84FF';
+  }
+  for (const [cut, k] of [[SHOT.styles[0], 0.75], [SHOT.langs[0], 0.65], [SHOT.end[0], 0.4], [FINAL, 0.9]]) {
+    const ca = k * decay(t - cut, 11);
     if (ca > a) { a = ca; color = '#fff'; }
   }
   if (t > DURATION - 0.6) { a = clamp01((t - (DURATION - 0.6)) / 0.5); color = '#000'; }
@@ -625,7 +944,6 @@ function updateFlash(t) {
 
 // ---------------------------------------------------------------- кадр
 function setOn(id, on) { $(id).classList.toggle('on', on); }
-let lastPtr = null;
 const DEBUG = new URLSearchParams(location.search).has('debug');
 let debugEl = null;
 if (DEBUG) {
@@ -633,22 +951,22 @@ if (DEBUG) {
   debugEl.style.cssText = 'position:absolute;right:20px;bottom:16px;z-index:99;font:600 28px monospace;color:#0f0;background:#000a;padding:4px 10px';
   $('frame').append(debugEl);
 }
+let lastPtr = null;
 window.__frame = (t, draw = true) => {
-  if (debugEl) {
-    const c = engine.cursor;
-    debugEl.textContent = `t=${t.toFixed(3)} beat=${(t / B).toFixed(2)} grow=${c.growLevel.toFixed(2)}/${c.growTarget.toFixed(2)} halo=${c.haloLevel.toFixed(2)} rev=${c.reversals.length} big=${!!c.big}`;
-  }
+  if (debugEl) debugEl.textContent = `t=${t.toFixed(3)} beat=${((t - FIRST) / B).toFixed(2)}`;
   const app = inShot('app', t);
   setOn('app', app);
   setOn('styles', inShot('styles', t));
   setOn('langs', inShot('langs', t));
   setOn('endcard', inShot('end', t));
+  setOn('introOv', inShot('intro', t));
+  setOn('motion', inShot('motion', t));
+  if (inShot('motion', t)) updateMotion(t);
   const gl = inShot('intro', t) || inShot('langs', t) || inShot('end', t);
   $('gl').style.display = gl ? 'block' : 'none';
-  $('vignette').classList.toggle('soft', !gl);
+  $('vignette').classList.toggle('soft', !gl && !(inShot('motion', t) && t < DROP));
   if (gl && draw) render3D(t);
-  // Мышь шлём движку и до показа сцены, чтобы детектор встряхивания был в курсе
-  if (t >= at(18)) {
+  if (t >= T(24)) {
     const p = pointer(t);
     if (!lastPtr || p.x !== lastPtr.x || p.y !== lastPtr.y) {
       engine.input({ t: 'move', x: p.x, y: p.y });
@@ -663,5 +981,5 @@ window.__frame = (t, draw = true) => {
   updateFlash(t);
 };
 
-window.__meta = { fps: 60, duration: DURATION, bpm: BPM, musicStart: 10.761 };
+window.__meta = { fps: 60, duration: DURATION, bpm: BPM, musicStart: 0, music: 'keyshow-suno.mp3' };
 document.fonts.ready.then(() => { window.__ready = true; });

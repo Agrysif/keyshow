@@ -19,6 +19,29 @@
 <body>
   <div id="frame">
     <canvas id="gl" width="1920" height="1080"></canvas>
+    <div id="introOv" class="layer ks-root"><div id="introStage"></div></div>
+
+    <div id="motion" class="scene">
+      <div id="mCam">
+        <div id="mGrid"></div>
+        <div id="mGlow"></div>
+        <div id="mWord" class="m-layer"></div>
+        <div id="mCombos" class="m-layer"></div>
+        <div id="mLabel"></div>
+        <div id="mBreak" class="m-text">
+          <div class="m-line"><span class="m-w">Ты</span> <span class="m-w">нажимаешь —</span></div>
+          <div class="m-line"><span class="m-w">зритель</span> <span class="m-w accent">видит</span></div>
+        </div>
+        <div id="mFlood"></div>
+        <div id="mRings" class="m-layer"></div>
+        <div id="mBurst" class="m-layer"></div>
+        <div id="mTag" class="m-text">
+          <div class="m-line"><span class="m-w">Каждое</span> <span class="m-w">нажатие —</span></div>
+          <div class="m-line"><span class="m-hl"><span class="m-w">на экране</span><i id="mBar"></i></span></div>
+        </div>
+        <div id="mCursor"><svg viewBox="0 0 14 21"><path d="M1 1v15.6l4-3.9 2.9 6.4 2.5-1.1-2.8-6.3h5.6Z" fill="#fff" stroke="#000" stroke-width="1.1" stroke-linejoin="round"/></svg></div>
+      </div>
+    </div>
 
     <div id="app" class="scene">
       <div id="appInner">
@@ -76,6 +99,7 @@
       <div class="tile photo" data-style="glass" data-color="#5E5CE6"></div>
       <div class="tile canvas-bg" data-style="light" data-color="#FF375F"></div>
       <div class="tile white" data-style="dark" data-color="#FF9F0A"></div>
+      <div class="tile violet" data-style="solid" data-color="#BF5AF2"></div>
     </div>
 
     <div id="langs" class="scene">
