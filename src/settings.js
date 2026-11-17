@@ -775,6 +775,7 @@
               buttonRow(t('upd.whatsNew'), openWhatsNew),
               buttonRow(t('upd.github'), () => api.openReleases()),
               buttonRow('♥ ' + t('donate'), () => api.openDonate()),
+              buttonRow(t('report'), () => api.reportBug()),
             ],
           },
         ],
@@ -846,6 +847,7 @@
     $('#pvBg').replaceWith(previewSeg.el);
     $('#demoBtn').addEventListener('click', () => api.demo());
     $('#donateBtn').addEventListener('click', () => api.openDonate());
+    $('#reportBtn').addEventListener('click', () => api.reportBug());
   }
 
   // ---------------------------------------------------------------- init

@@ -144,6 +144,7 @@
     'upd.github': 'GitHub’dagi barcha versiyalar',
     'donate': 'Muallifni qoʻllab-quvvatlash',
     'donate.sub': 'Donation Alerts orqali xayriya',
+    'report': 'Xato haqida xabar berish',
     'upd.s.dev': 'Yangilanishlar KeyShow’ning oʻrnatilgan versiyasida ishlaydi',
     'upd.s.idle': 'Tekshiruv hali oʻtkazilmagan',
     'upd.s.checking': 'Yangilanishlar tekshirilmoqda…',

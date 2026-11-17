@@ -16,6 +16,7 @@ contextBridge.exposeInMainWorld('keyshow', {
   whatsNewSeen: () => ipcRenderer.send('whatsnew-seen'),
   openReleases: () => ipcRenderer.send('open-releases'),
   openDonate: () => ipcRenderer.send('open-donate'),
+  reportBug: () => ipcRenderer.send('bug-report:open'),
   on: (channel, fn) => {
     if (!CHANNELS.includes(channel)) return;
     ipcRenderer.on(channel, (_e, data) => fn(data));

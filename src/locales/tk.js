@@ -144,6 +144,7 @@
     'upd.github': 'GitHub-daky ähli wersiýalar',
     'donate': 'Awtory goldamak',
     'donate.sub': 'Donation Alerts arkaly goldaw',
+    'report': 'Ýalňyşlyk barada habar bermek',
     'upd.s.dev': 'Täzelenmeler KeyShow-yň gurnalan wersiýasynda işleýär',
     'upd.s.idle': 'Barlag heniz geçirilmedi',
     'upd.s.checking': 'Täzelenmeler barlanýar…',

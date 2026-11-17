@@ -1,0 +1,40 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' data:">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title></title>
+<link rel="stylesheet" href="report.css">
+</head>
+<body>
+<main id="form" hidden>
+  <h1 id="h"></h1>
+  <p class="lead" id="lead"></p>
+  <label class="field"><span id="l-msg"></span><textarea id="msg" rows="5" maxlength="4000"></textarea></label>
+  <label class="field"><span id="l-contact"></span><input id="contact" maxlength="200" autocomplete="email"></label>
+  <details id="det">
+    <summary id="l-det"></summary>
+    <p class="note" id="det-note"></p>
+    <dl id="kv"></dl>
+    <h3 id="l-crumbs"></h3><ol class="log" id="crumbs"></ol>
+    <h3 id="l-errors"></h3><ol class="log err" id="errors"></ol>
+  </details>
+  <label class="check" id="nomore-wrap" hidden><input type="checkbox" id="nomore"><span id="l-nomore"></span></label>
+  <p class="status" id="status" role="status" aria-live="polite"></p>
+  <div class="actions">
+    <button type="button" class="ghost" id="copy" hidden></button>
+    <span class="grow"></span>
+    <button type="button" class="ghost" id="cancel"></button>
+    <button type="button" class="primary" id="send"></button>
+  </div>
+  <p class="where"><button type="button" class="link" id="where"></button></p>
+</main>
+<main id="done" hidden>
+  <div class="ok-ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg></div>
+  <p class="done-text" id="done-text"></p>
+  <div class="actions center"><button type="button" class="primary" id="close"></button></div>
+</main>
+<script src="report.js"></script>
+</body>
+</html>

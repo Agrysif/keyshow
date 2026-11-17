@@ -144,6 +144,7 @@
     'upd.github': 'Toate versiunile pe GitHub',
     'donate': 'Susține autorul',
     'donate.sub': 'Donație prin Donation Alerts',
+    'report': 'Raportează o problemă',
     'upd.s.dev': 'Actualizările funcționează în versiunea instalată a KeyShow',
     'upd.s.idle': 'Verificarea nu a fost făcută încă',
     'upd.s.checking': 'Se caută actualizări…',

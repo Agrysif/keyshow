@@ -144,6 +144,7 @@
     'upd.github': 'GitHub-da bütün versiyalar',
     'donate': 'Müəllifi dəstəklə',
     'donate.sub': 'Donation Alerts vasitəsilə ianə',
+    'report': 'Xəta barədə xəbər vermək',
     'upd.s.dev': 'Yeniləmələr KeyShow-un quraşdırılmış versiyasında işləyir',
     'upd.s.idle': 'Yoxlama hələ aparılmayıb',
     'upd.s.checking': 'Yeniləmələr yoxlanılır…',

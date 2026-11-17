@@ -8,6 +8,20 @@
 })(typeof self !== 'undefined' ? self : this, function () {
   return [
     {
+      version: '1.4.0',
+      date: '2026-11-17',
+      ru: [
+        'Кнопка «Сообщить об ошибке» — внизу окна настроек, в разделе «Обновления» и в меню трея. Опишите, что пошло не так, и отчёт уйдёт автору.',
+        'Перед отправкой видно всё, что будет в отчёте: версия, система, последние действия и ошибки. Имя пользователя, пути к вашим файлам, почты и ключи вырезаются.',
+        'Если в KeyShow случится сбой, программа сама предложит отправить отчёт. Отключить это можно галочкой «Больше не предлагать».',
+      ],
+      en: [
+        'A “Report a problem” button at the bottom of Settings, in the Updates section and in the tray menu. Describe what went wrong and the report goes to the author.',
+        'Before sending you see everything the report contains: version, system, recent actions and errors. Your user name, paths to your files, emails and keys are removed.',
+        'If KeyShow runs into an error, it offers to send a report. You can turn this off with “Don’t offer after errors again”.',
+      ],
+    },
+    {
       version: '1.3.0',
       date: '2026-10-20',
       ru: [

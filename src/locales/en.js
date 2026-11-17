@@ -144,6 +144,7 @@
     'upd.github': 'All releases on GitHub',
     'donate': 'Support the author',
     'donate.sub': 'Donate via Donation Alerts',
+    'report': 'Report a problem',
     'upd.s.dev': 'Updates work in the installed version of KeyShow',
     'upd.s.idle': 'Not checked yet',
     'upd.s.checking': 'Checking for updates…',

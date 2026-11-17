@@ -6,6 +6,7 @@ const {
 const path = require('path');
 const fs = require('fs');
 const { createUpdater } = require('./updater');
+const bugReport = require('./bug-report');
 const I18N = require('./i18n');
 
 const RELEASES_URL = 'https://github.com/Agrysif/keyshow/releases';
@@ -164,6 +165,7 @@ let overlay = null;
 let overlayBounds = null;
 let settingsWin = null;
 let tray = null;
+let lastUpdateStatus = '';
 let updater = null;
 let quitting = false;
 let hotkeyOk = true;
@@ -214,6 +216,7 @@ function createOverlay() {
   overlay.setAlwaysOnTop(true, 'screen-saver');
   overlay.setVisibleOnAllWorkspaces(true);
   overlay.loadFile(path.join(__dirname, 'overlay.html'));
+  bugReport.attach(overlay.webContents, 'оверлей');
   overlay.once('ready-to-show', () => {
     placeOverlay();
     if (settings.enabled) overlay.showInactive();
@@ -263,6 +266,7 @@ function openSettings() {
   });
   settingsWin.setMenu(null);
   settingsWin.loadFile(path.join(__dirname, 'settings.html'));
+  bugReport.attach(settingsWin.webContents, 'настройки');
   settingsWin.once('ready-to-show', () => settingsWin.show());
   settingsWin.on('close', () => {
     if (!quitting && !settings.trayHintShown && tray) {
@@ -337,6 +341,8 @@ function applyEnabled() {
 
 function applyPatch(patch) {
   const prev = { ...settings };
+  const changed = Object.keys(patch || {}).filter((k) => k in DEFAULTS);
+  if (changed.length) bugReport.crumb(changed.length === 1 && changed[0] === 'enabled' ? (patch.enabled ? 'показ клавиш включён' : 'показ клавиш выключен') : 'настройка: ' + changed.join(', '));
   for (const [k, v] of Object.entries(patch || {})) {
     if (k in DEFAULTS && typeof v === typeof DEFAULTS[k]) settings[k] = v;
   }
@@ -389,6 +395,7 @@ function updateTray() {
     { label: tr('tray.demo'), click: runDemo },
     { label: tr('tray.settings'), click: openSettings },
     { label: '♥ ' + tr('donate'), click: () => shell.openExternal(DONATE_URL) },
+    { label: tr('report'), click: () => bugReport.open() },
     { type: 'separator' },
     { label: tr('tray.quit'), click: () => { quitting = true; app.quit(); } },
   ]));
@@ -583,6 +590,29 @@ if (!app.requestSingleInstanceLock()) {
     settings = loadSettings();
     nativeTheme.themeSource = settings.theme;
 
+    // «Сообщить об ошибке»: журнал последних действий и ошибок, окно отчёта, предложение после сбоя.
+    bugReport.init({
+      app: 'keyshow',
+      name: 'KeyShow',
+      lang: currentLang,
+      accent: '#007AFF',
+      icon: path.join(ASSETS, 'icon.png'),
+      parent: () => settingsWin,
+      screen: async () => {
+        if (!settingsWin || settingsWin.isDestroyed() || !settingsWin.isVisible()) return 'работает в трее, окно настроек закрыто';
+        const sec = await settingsWin.webContents.executeJavaScript("(document.querySelector('.nav-item.on') || {}).textContent || ''", true).catch(() => '');
+        return 'настройки' + (sec ? ': ' + sec.trim() : '');
+      },
+      extra: () => ({
+        overlay: settings.enabled ? 'включён' : 'выключен',
+        keyHook: uIOhook && !hookError ? 'работает' : 'не работает: ' + String((hookError && hookError.message) || hookError || 'нет модуля'),
+        displays: screen.getAllDisplays().length + (settings.display ? ', выбран ' + settings.display : ', основной'),
+        hotkey: settings.hotkey || 'нет',
+        theme: settings.theme,
+        autoUpdate: settings.autoUpdate ? 'да' : 'нет',
+      }),
+    });
+
     // Версия поменялась с прошлого запуска → покажем «Что нового».
     const version = app.getVersion();
     const updatedNow = !!settings.lastVersion && compareVersions(version, settings.lastVersion) > 0;
@@ -601,6 +631,11 @@ if (!app.requestSingleInstanceLock()) {
       isAuto: () => settings.autoUpdate,
       idleFor,
       onState: (st) => {
+        if (st && st.status !== lastUpdateStatus) {
+          lastUpdateStatus = st.status;
+          bugReport.crumb('обновление: ' + st.status + (st.version ? ' ' + st.version : ''));
+          if (st.status === 'error') bugReport.error('обновление: ' + (st.error || st.message || 'ошибка'));
+        }
         send(settingsWin, 'update', st);
         updateTray();
       },
@@ -620,6 +655,7 @@ if (!app.requestSingleInstanceLock()) {
     }
 
     const onDisplays = () => {
+      bugReport.crumb('мониторы изменились: ' + screen.getAllDisplays().length);
       placeOverlay();
       send(settingsWin, 'displays', listDisplays());
     };
